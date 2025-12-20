@@ -52,6 +52,67 @@ app.use(sessionMiddleware);
 // Bot counter for moderation dashboard
 global.botRequestCount = 0;
 
+// IP Ban System - tracks violations and temporarily bans repeat offenders
+const ipBans = new Map(); // { ip: { bannedUntil: timestamp, violations: count } }
+const ipViolations = new Map(); // { ip: [timestamps] }
+
+// Check if IP is banned
+const isBanned = (ip) => {
+  const ban = ipBans.get(ip);
+  if (!ban) return false;
+
+  if (Date.now() > ban.bannedUntil) {
+    // Ban expired, remove it
+    ipBans.delete(ip);
+    return false;
+  }
+
+  return true;
+};
+
+// Record a rate limit violation and potentially ban the IP
+const recordViolation = (ip) => {
+  const now = Date.now();
+  const violations = ipViolations.get(ip) || [];
+
+  // Keep only violations from last 5 minutes
+  const recentViolations = violations.filter(time => now - time < 5 * 60 * 1000);
+  recentViolations.push(now);
+  ipViolations.set(ip, recentViolations);
+
+  // Ban if 5+ violations in 5 minutes
+  if (recentViolations.length >= 5) {
+    const banDuration = 15 * 60 * 1000; // 15 minute ban
+    const existingBan = ipBans.get(ip) || { violations: 0 };
+
+    ipBans.set(ip, {
+      bannedUntil: now + banDuration,
+      violations: existingBan.violations + 1
+    });
+
+    console.log(`[SECURITY] IP ${ip} temporarily banned for ${banDuration / 60000} minutes (${recentViolations.length} violations)`);
+
+    // Clear violations since we've banned them
+    ipViolations.delete(ip);
+  }
+};
+
+// IP ban check middleware - blocks banned IPs immediately
+app.use((req, res, next) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+  if (isBanned(ip)) {
+    const ban = ipBans.get(ip);
+    const minutesLeft = Math.ceil((ban.bannedUntil - Date.now()) / 60000);
+
+    console.log(`[SECURITY] Blocked request from banned IP: ${ip} (${minutesLeft} minutes remaining)`);
+
+    return res.status(403).sendFile(path.join(__dirname, '../public/403.html'));
+  }
+
+  next();
+});
+
 // Simple request logger - shows visitor activity in Railway logs (no database storage)
 app.use((req, res, next) => {
   // Skip logging for static assets (CSS, JS, images) and API health checks
@@ -90,8 +151,12 @@ io.use(allowGuestSocket);
 
 // Custom rate limit handler - returns JSON for API, redirects for pages
 const rateLimitHandler = (req, res) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   const resetTime = Math.floor(Date.now() / 1000) + Math.floor((req.rateLimit.resetTime - Date.now()) / 1000);
   const waitSeconds = Math.floor((req.rateLimit.resetTime - Date.now()) / 1000);
+
+  // Record this violation for potential IP banning
+  recordViolation(ip);
 
   // Check if this is an API request (check both path and originalUrl to be safe)
   const isApiRequest = req.originalUrl?.startsWith('/api/') || req.url?.startsWith('/api/') || req.path?.startsWith('/api/');
@@ -112,7 +177,7 @@ const rateLimitHandler = (req, res) => {
 // Rate limiting - General API protection
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 200, // Limit each IP to 200 API requests per 15 minutes (~13 req/min)
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler,
@@ -125,6 +190,30 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // Don't count successful requests
   handler: rateLimitHandler,
 });
+
+// Rate limiting - GLOBAL burst protection (catches rapid-fire attacks)
+const globalBurstLimiter = rateLimit({
+  windowMs: 1000, // 1 second
+  max: 50, // 50 requests per second per IP (allows page loads)
+  message: 'Too many requests, please slow down',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+// Rate limiting - GLOBAL sustained protection (catches prolonged attacks)
+const globalSustainedLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute per IP (prevents sustained abuse)
+  message: 'Too many requests, please slow down',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
+// Apply BOTH global limiters to ALL routes (dual-layer infrastructure protection)
+app.use(globalBurstLimiter);
+app.use(globalSustainedLimiter);
 
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
