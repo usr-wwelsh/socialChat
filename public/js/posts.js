@@ -6,6 +6,12 @@ let currentAudioDuration = null;
 let currentAudioFormat = null;
 let postsSocket = null;
 
+// Pagination state
+let currentOffset = 0;
+let currentTagFilter = null;
+let isLoadingMore = false;
+let hasMorePosts = true;
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('postsContainer')) {
         loadPosts();
@@ -324,8 +330,10 @@ async function createPost() {
         }
         clearMedia();
 
-        // Reload posts and trending tags
-        await loadPosts();
+        // Reset pagination and reload posts (respecting current filter)
+        currentOffset = 0;
+        hasMorePosts = true;
+        await loadPosts(currentTagFilter);
         await loadTrendingTags();
     } catch (error) {
         console.error('Create post error:', error);
@@ -333,31 +341,131 @@ async function createPost() {
     }
 }
 
-async function loadPosts(tagFilter = null) {
+async function loadPosts(tagFilter = null, append = false) {
     const postsContainer = document.getElementById('postsContainer');
 
     try {
         let url = '/api/posts?limit=30'; // Reduced to 30 for better performance with live feed
         if (tagFilter) {
-            url = `/api/tags/${tagFilter}/posts`;
+            url = `/api/tags/${tagFilter}/posts?limit=30`;
+        }
+
+        // Add offset for pagination (only when appending)
+        if (append && currentOffset > 0) {
+            url += `&offset=${currentOffset}`;
         }
 
         const response = await fetch(url);
         const data = await response.json();
-        const posts = data.posts || data;
+        const posts = Array.isArray(data) ? data : (data.posts || data);
 
         if (posts.length === 0) {
+            if (append) {
+                // No more posts to load
+                hasMorePosts = false;
+                hideLoadMoreButton();
+                return;
+            }
             postsContainer.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
+            hasMorePosts = false;
+            hideLoadMoreButton();
             return;
         }
 
-        postsContainer.innerHTML = posts.map(post => renderPost(post)).join('');
+        if (append) {
+            // Remove "Load More" button if it exists
+            const existingBtn = document.getElementById('loadMorePostsBtn');
+            if (existingBtn) existingBtn.remove();
+
+            // Append new posts
+            const newPostsHtml = posts.map(post => renderPost(post)).join('');
+            postsContainer.insertAdjacentHTML('beforeend', newPostsHtml);
+        } else {
+            // Replace entire container (initial load or filter change)
+            postsContainer.innerHTML = posts.map(post => renderPost(post)).join('');
+            currentOffset = 0;
+            currentTagFilter = tagFilter;
+            hasMorePosts = true;
+        }
+
+        // Update offset for next load
+        currentOffset += posts.length;
+
+        // Check if we got fewer posts than requested (indicates end of feed)
+        if (posts.length < 30) {
+            hasMorePosts = false;
+        }
 
         // Attach event listeners
         attachPostEventListeners();
+
+        // Show/hide Load More button
+        if (hasMorePosts) {
+            showLoadMoreButton();
+        } else {
+            hideLoadMoreButton();
+        }
     } catch (error) {
         console.error('Load posts error:', error);
-        postsContainer.innerHTML = '<p class="error">Failed to load posts</p>';
+        if (!append) {
+            postsContainer.innerHTML = '<p class="error">Failed to load posts</p>';
+        }
+    }
+}
+
+// Load more posts (pagination)
+async function loadMorePosts() {
+    if (isLoadingMore || !hasMorePosts) {
+        return;
+    }
+
+    isLoadingMore = true;
+    const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+
+    if (loadMoreBtn) {
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    }
+
+    try {
+        await loadPosts(currentTagFilter, true); // append = true
+    } catch (error) {
+        console.error('Load more posts error:', error);
+        if (loadMoreBtn) {
+            loadMoreBtn.textContent = 'Failed to load - Click to retry';
+        }
+    } finally {
+        isLoadingMore = false;
+        if (loadMoreBtn && hasMorePosts) {
+            loadMoreBtn.textContent = 'Load More Posts';
+            loadMoreBtn.disabled = false;
+        }
+    }
+}
+
+// Show Load More button
+function showLoadMoreButton() {
+    let loadMoreBtn = document.getElementById('loadMorePostsBtn');
+
+    if (!loadMoreBtn) {
+        loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'loadMorePostsBtn';
+        loadMoreBtn.className = 'btn-load-more-posts';
+        loadMoreBtn.textContent = 'Load More Posts';
+        loadMoreBtn.onclick = loadMorePosts;
+    }
+
+    const postsContainer = document.getElementById('postsContainer');
+    if (postsContainer && !postsContainer.contains(loadMoreBtn)) {
+        postsContainer.appendChild(loadMoreBtn);
+    }
+}
+
+// Hide Load More button
+function hideLoadMoreButton() {
+    const loadMoreBtn = document.getElementById('loadMorePostsBtn');
+    if (loadMoreBtn) {
+        loadMoreBtn.remove();
     }
 }
 
@@ -554,6 +662,11 @@ function formatDuration(seconds) {
 }
 
 function filterByTag(tagName) {
+    // Reset pagination state when changing filters
+    currentOffset = 0;
+    currentTagFilter = tagName;
+    hasMorePosts = true;
+
     loadPosts(tagName);
     // Update UI to show active filter
     const filterIndicator = document.getElementById('activeFilter');
@@ -564,6 +677,11 @@ function filterByTag(tagName) {
 }
 
 function clearTagFilter() {
+    // Reset pagination state when clearing filter
+    currentOffset = 0;
+    currentTagFilter = null;
+    hasMorePosts = true;
+
     loadPosts();
     const filterIndicator = document.getElementById('activeFilter');
     if (filterIndicator) {

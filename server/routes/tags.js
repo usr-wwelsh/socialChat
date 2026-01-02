@@ -47,6 +47,8 @@ router.get('/trending', async (req, res) => {
 router.get('/:tagName/posts', async (req, res) => {
   try {
     const { tagName } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
     const userId = req.session?.userId;
 
     const result = await query(`
@@ -85,8 +87,8 @@ router.get('/:tagName/posts', async (req, res) => {
         AND (p.visibility = 'public' OR p.user_id = $2)
       GROUP BY p.id, u.id
       ORDER BY p.created_at DESC
-      LIMIT 50
-    `, [tagName, userId || null]);
+      LIMIT $3 OFFSET $4
+    `, [tagName, userId || null, limit, offset]);
 
     res.json(result.rows);
   } catch (error) {
