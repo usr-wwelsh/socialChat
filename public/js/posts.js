@@ -392,7 +392,14 @@ async function loadPosts(tagFilter = null, append = false) {
         currentOffset += posts.length;
 
         // Check if we got fewer posts than requested (indicates end of feed)
-        if (posts.length < 30) {
+        // Only set hasMorePosts to false if we got 0 posts, or if we're appending and got less than requested
+        if (append && posts.length === 0) {
+            hasMorePosts = false;
+        } else if (!append && posts.length < 30) {
+            // On initial load, if we got less than 30, there are no more posts
+            hasMorePosts = false;
+        } else if (append && posts.length < 30 && posts.length > 0) {
+            // On append, if we got some but less than 30, this is the last batch
             hasMorePosts = false;
         }
 
