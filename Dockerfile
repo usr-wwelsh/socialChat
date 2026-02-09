@@ -19,10 +19,9 @@ COPY --from=anubis /ko-app/anubis /usr/bin/anubis
 # Make entrypoint executable
 RUN chmod +x /app/start.sh
 
-# Anubis default configuration
+# Anubis configuration
 ENV DIFFICULTY=4
 ENV SERVE_ROBOTS_TXT=true
-ENV OG_PASSTHROUGH=true
-ENV OG_EXPIRY_TIME=24h
+ENV POLICY_FNAME=/app/anubis-policy.yaml
 
 ENTRYPOINT ["/app/start.sh"]
