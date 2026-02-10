@@ -1,5 +1,12 @@
 bots:
-  # Allow social media preview bots (link embeds) BEFORE deny rules
+  # Allow static preview assets without challenge (OG images, favicon, etc.)
+  # Needed because Meta's bot also fetches the og:image URL and would get blocked
+  - name: preview-assets
+    path_regex: >-
+      \.(png|jpg|jpeg|gif|svg|ico|webp)$
+    action: ALLOW
+
+  # Allow social media preview bots (link embeds) by user agent
   - name: social-preview-bots
     user_agent_regex: >-
       Discordbot|Twitterbot|TelegramBot|Slackbot|LinkedInBot|WhatsApp|Pinterestbot|Redditbot|facebookexternalhit|Facebot|FacebookBot|meta-externalagent|Meta-ExternalAgent|meta-externalfetcher|Meta-ExternalFetcher|MetaInspector
