@@ -28,56 +28,63 @@ router.get('/', async (req, res) => {
   const userId = req.session?.userId;
 
   try {
-    // Get posts with tags
+    // Get posts with tags AND comments in a single optimized query
     const result = await query(
-      `SELECT p.*, u.username, u.profile_picture as user_profile_picture,
-       (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
-       (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
-       COALESCE(
-         json_agg(
-           DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
-         ) FILTER (WHERE t.id IS NOT NULL),
-         '[]'
-       ) as tags
-       FROM posts p
-       JOIN users u ON p.user_id = u.id
-       LEFT JOIN post_tags pt ON p.id = pt.post_id
-       LEFT JOIN tags t ON pt.tag_id = t.id
-       WHERE p.deleted_by_mod = FALSE
-         AND u.is_banned = FALSE
-         AND (
-           p.visibility = 'public'
-           OR p.user_id = $3
-           OR (
-             p.visibility = 'friends' AND EXISTS (
-               SELECT 1 FROM friendships f
-               WHERE f.status = 'accepted'
-                 AND ((f.requester_id = $3 AND f.receiver_id = p.user_id)
-                      OR (f.receiver_id = $3 AND f.requester_id = p.user_id))
+      `WITH post_data AS (
+         SELECT p.*, u.username, u.profile_picture as user_profile_picture,
+           (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+           (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
+           COALESCE(
+             (SELECT json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name))
+              FROM post_tags pt
+              JOIN tags t ON pt.tag_id = t.id
+              WHERE pt.post_id = p.id),
+             '[]'
+           ) as tags
+         FROM posts p
+         JOIN users u ON p.user_id = u.id
+         WHERE p.deleted_by_mod = FALSE
+           AND u.is_banned = FALSE
+           AND (
+             p.visibility = 'public'
+             OR p.user_id = $3
+             OR (
+               p.visibility = 'friends' AND EXISTS (
+                 SELECT 1 FROM friendships f
+                 WHERE f.status = 'accepted'
+                   AND ((f.requester_id = $3 AND f.receiver_id = p.user_id)
+                        OR (f.receiver_id = $3 AND f.requester_id = p.user_id))
+               )
              )
            )
-         )
-       GROUP BY p.id, u.id, u.username, u.profile_picture
-       ORDER BY p.created_at DESC
-       LIMIT $1 OFFSET $2`,
+         ORDER BY p.created_at DESC
+         LIMIT $1 OFFSET $2
+       )
+       SELECT pd.*,
+         COALESCE(
+           (SELECT json_agg(comment_data ORDER BY comment_data.created_at ASC)
+            FROM (
+              SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.updated_at, c.deleted_at,
+                u.username, u.profile_picture,
+                (SELECT COUNT(*) FROM comment_reactions WHERE comment_id = c.id) as reaction_count
+              FROM comments c
+              JOIN users u ON c.user_id = u.id
+              WHERE c.post_id = pd.id AND c.deleted_at IS NULL
+              ORDER BY c.created_at ASC
+              LIMIT 3
+            ) comment_data),
+           '[]'
+         ) as preview_comments
+       FROM post_data pd`,
       [limit, offset, userId || null]
     );
 
-    // Get first 3 comments for each post
-    const posts = result.rows;
-    for (let post of posts) {
-      const commentsResult = await query(
-        `SELECT c.*, u.username, u.profile_picture,
-         (SELECT COUNT(*) FROM comment_reactions WHERE comment_id = c.id) as reaction_count
-         FROM comments c
-         JOIN users u ON c.user_id = u.id
-         WHERE c.post_id = $1 AND c.deleted_at IS NULL
-         ORDER BY c.created_at ASC
-         LIMIT 3`,
-        [post.id]
-      );
-      post.preview_comments = commentsResult.rows;
-    }
+    // Parse the JSON fields
+    const posts = result.rows.map(post => ({
+      ...post,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+      preview_comments: typeof post.preview_comments === 'string' ? JSON.parse(post.preview_comments) : post.preview_comments
+    }));
 
     res.json({ posts: posts });
   } catch (error) {
