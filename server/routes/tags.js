@@ -47,50 +47,64 @@ router.get('/trending', async (req, res) => {
 router.get('/:tagName/posts', async (req, res) => {
   try {
     const { tagName } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt(req.query.limit) || 20; // Reduced for performance
     const offset = parseInt(req.query.offset) || 0;
     const userId = req.session?.userId;
 
+    // Optimized query - no media_data loading for performance
     const result = await query(`
-      SELECT
-        p.id, p.content, p.media_type, p.media_data, p.visibility,
-        p.audio_duration, p.audio_format,
-        p.created_at, p.updated_at,
-        u.id as user_id, u.username, u.profile_picture,
+      WITH post_data AS (
+        SELECT
+          p.id, p.user_id, p.content, p.media_type, p.visibility,
+          p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
+          u.username, u.profile_picture as user_profile_picture,
+          (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+          (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
+          COALESCE(
+            (SELECT json_agg(DISTINCT jsonb_build_object('id', t2.id, 'name', t2.name))
+             FROM post_tags pt2
+             JOIN tags t2 ON pt2.tag_id = t2.id
+             WHERE pt2.post_id = p.id),
+            '[]'
+          ) as tags
+        FROM posts p
+        INNER JOIN users u ON p.user_id = u.id
+        INNER JOIN post_tags pt ON p.id = pt.post_id
+        INNER JOIN tags t ON pt.tag_id = t.id
+        WHERE t.name = $1
+          AND p.deleted_by_mod = FALSE
+          AND u.is_banned = FALSE
+          AND (p.visibility = 'public' OR p.user_id = $2)
+        GROUP BY p.id, u.id
+        ORDER BY p.created_at DESC
+        LIMIT $3 OFFSET $4
+      )
+      SELECT pd.*,
         COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object(
-              'type', pr.reaction_type,
-              'count', (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id AND reaction_type = pr.reaction_type)
-            )
-          ) FILTER (WHERE pr.reaction_type IS NOT NULL),
+          (SELECT json_agg(comment_data ORDER BY comment_data.created_at ASC)
+           FROM (
+             SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.updated_at, c.deleted_at,
+               u.username, u.profile_picture,
+               (SELECT COUNT(*) FROM comment_reactions WHERE comment_id = c.id) as reaction_count
+             FROM comments c
+             JOIN users u ON c.user_id = u.id
+             WHERE c.post_id = pd.id AND c.deleted_at IS NULL
+             ORDER BY c.created_at ASC
+             LIMIT 3
+           ) comment_data),
           '[]'
-        ) as reactions,
-        EXISTS(
-          SELECT 1 FROM post_reactions
-          WHERE post_id = p.id AND user_id = $2
-        ) as user_reacted,
-        COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
-          ) FILTER (WHERE t.id IS NOT NULL),
-          '[]'
-        ) as tags
-      FROM posts p
-      INNER JOIN users u ON p.user_id = u.id
-      INNER JOIN post_tags pt ON p.id = pt.post_id
-      INNER JOIN tags t ON pt.tag_id = t.id
-      LEFT JOIN post_reactions pr ON p.id = pr.post_id
-      WHERE t.name = $1
-        AND p.deleted_by_mod = FALSE
-        AND u.is_banned = FALSE
-        AND (p.visibility = 'public' OR p.user_id = $2)
-      GROUP BY p.id, u.id
-      ORDER BY p.created_at DESC
-      LIMIT $3 OFFSET $4
+        ) as preview_comments
+      FROM post_data pd
     `, [tagName, userId || null, limit, offset]);
 
-    res.json(result.rows);
+    // Parse JSON fields
+    const posts = result.rows.map(post => ({
+      ...post,
+      tags: typeof post.tags === 'string' ? JSON.parse(post.tags) : post.tags,
+      preview_comments: typeof post.preview_comments === 'string' ? JSON.parse(post.preview_comments) : post.preview_comments
+    }));
+
+    res.json(posts);
   } catch (error) {
     console.error('Error fetching posts by tag:', error);
     res.status(500).json({ error: 'Failed to fetch posts by tag' });

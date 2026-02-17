@@ -5,6 +5,33 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
+// Simple in-memory cache for posts feed (TTL: 10 seconds)
+const feedCache = new Map();
+const CACHE_TTL = 10000; // 10 seconds
+
+function getCachedFeed(key) {
+  const cached = feedCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  feedCache.delete(key);
+  return null;
+}
+
+function setCachedFeed(key, data) {
+  feedCache.set(key, { data, timestamp: Date.now() });
+  // Clean up old cache entries periodically
+  if (feedCache.size > 100) {
+    const oldestKey = feedCache.keys().next().value;
+    feedCache.delete(oldestKey);
+  }
+}
+
+// Clear cache when new posts are created or modified
+function clearFeedCache() {
+  feedCache.clear();
+}
+
 // Will be set by index.js
 let io = null;
 router.setSocketIO = (socketIO) => {
@@ -23,15 +50,27 @@ const postCreationLimiter = rateLimit({
 
 // Get all posts (feed)
 router.get('/', async (req, res) => {
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = parseInt(req.query.limit) || 20; // Reduced from 50 for better performance
   const offset = parseInt(req.query.offset) || 0;
   const userId = req.session?.userId;
 
+  // Check cache (only for first page)
+  if (offset === 0) {
+    const cacheKey = `feed:${userId || 'public'}:${limit}`;
+    const cached = getCachedFeed(cacheKey);
+    if (cached) {
+      return res.json({ posts: cached });
+    }
+  }
+
   try {
     // Get posts with tags AND comments in a single optimized query
+    // NOTE: We don't load media_data here for performance - it's loaded on-demand
     const result = await query(
       `WITH post_data AS (
-         SELECT p.*, u.username, u.profile_picture as user_profile_picture,
+         SELECT p.id, p.user_id, p.content, p.media_type, p.visibility,
+           p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
+           u.username, u.profile_picture as user_profile_picture,
            (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
            (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
            COALESCE(
@@ -86,9 +125,39 @@ router.get('/', async (req, res) => {
       preview_comments: typeof post.preview_comments === 'string' ? JSON.parse(post.preview_comments) : post.preview_comments
     }));
 
+    // Cache first page results
+    if (offset === 0) {
+      const cacheKey = `feed:${userId || 'public'}:${limit}`;
+      setCachedFeed(cacheKey, posts);
+    }
+
     res.json({ posts: posts });
   } catch (error) {
     console.error('Get posts error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get media for a specific post (lazy loading)
+router.get('/:id/media', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await query(
+      'SELECT media_data, media_type FROM posts WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].media_data) {
+      return res.status(404).json({ error: 'Media not found' });
+    }
+
+    res.json({
+      media_data: result.rows[0].media_data,
+      media_type: result.rows[0].media_type
+    });
+  } catch (error) {
+    console.error('Get media error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -210,6 +279,9 @@ router.post('/', postCreationLimiter, requireAuth, async (req, res) => {
       tags: tagsResult.rows
     };
 
+    // Clear feed cache since we have a new post
+    clearFeedCache();
+
     // Broadcast new post to all connected clients
     if (io && postVisibility === 'public') {
       io.emit('new_post', postData);
@@ -266,6 +338,9 @@ router.put('/:id', requireAuth, async (req, res) => {
       [content, media_type || null, media_data || null, id]
     );
 
+    // Clear feed cache since post was updated
+    clearFeedCache();
+
     res.json({
       message: 'Post updated successfully',
       post: result.rows[0]
@@ -307,6 +382,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
     // Delete post (reactions will cascade)
     await query('DELETE FROM posts WHERE id = $1', [id]);
+
+    // Clear feed cache since post was deleted
+    clearFeedCache();
 
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {

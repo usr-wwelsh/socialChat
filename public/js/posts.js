@@ -345,9 +345,9 @@ async function loadPosts(tagFilter = null, append = false) {
     const postsContainer = document.getElementById('postsContainer');
 
     try {
-        let url = '/api/posts?limit=30'; // Reduced to 30 for better performance with live feed
+        let url = '/api/posts?limit=20'; // Optimized for fast loading
         if (tagFilter) {
-            url = `/api/tags/${tagFilter}/posts?limit=30`;
+            url = `/api/tags/${tagFilter}/posts?limit=20`;
         }
 
         // Add offset for pagination (only when appending)
@@ -395,16 +395,19 @@ async function loadPosts(tagFilter = null, append = false) {
         // Only set hasMorePosts to false if we got 0 posts, or if we're appending and got less than requested
         if (append && posts.length === 0) {
             hasMorePosts = false;
-        } else if (!append && posts.length < 30) {
-            // On initial load, if we got less than 30, there are no more posts
+        } else if (!append && posts.length < 20) {
+            // On initial load, if we got less than 20, there are no more posts
             hasMorePosts = false;
-        } else if (append && posts.length < 30 && posts.length > 0) {
-            // On append, if we got some but less than 30, this is the last batch
+        } else if (append && posts.length < 20 && posts.length > 0) {
+            // On append, if we got some but less than 20, this is the last batch
             hasMorePosts = false;
         }
 
         // Attach event listeners
         attachPostEventListeners();
+
+        // Lazy load media using Intersection Observer
+        lazyLoadMedia();
 
         // Show/hide Load More button
         if (hasMorePosts) {
@@ -417,6 +420,73 @@ async function loadPosts(tagFilter = null, append = false) {
         if (!append) {
             postsContainer.innerHTML = '<p class="error">Failed to load posts</p>';
         }
+    }
+}
+
+// Lazy load media when posts come into view
+function lazyLoadMedia() {
+    const lazyElements = document.querySelectorAll('.lazy-media');
+
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const postId = element.dataset.postId;
+
+                    if (postId && !element.dataset.loaded) {
+                        element.dataset.loaded = 'true';
+                        loadMediaForPost(postId, element);
+                        observer.unobserve(element);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '50px' // Start loading 50px before element is visible
+        });
+
+        lazyElements.forEach(element => {
+            if (!element.dataset.loaded) {
+                imageObserver.observe(element);
+            }
+        });
+    } else {
+        // Fallback for browsers without IntersectionObserver
+        lazyElements.forEach(element => {
+            const postId = element.dataset.postId;
+            if (postId && !element.dataset.loaded) {
+                element.dataset.loaded = 'true';
+                loadMediaForPost(postId, element);
+            }
+        });
+    }
+}
+
+// Load media for a specific post
+async function loadMediaForPost(postId, element) {
+    try {
+        const response = await fetch(`/api/posts/${postId}/media`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (element.tagName === 'IMG') {
+            element.src = data.media_data;
+        } else if (element.tagName === 'VIDEO') {
+            const source = element.querySelector('source');
+            if (source) {
+                source.src = data.media_data;
+                element.load();
+            }
+        } else if (element.tagName === 'AUDIO') {
+            const source = element.querySelector('source');
+            if (source) {
+                source.src = data.media_data;
+                element.load();
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load media for post', postId, error);
     }
 }
 
@@ -482,23 +552,45 @@ function renderPost(post) {
     const isGuestUser = typeof isGuest !== 'undefined' && isGuest;
     const avatarUrl = post.user_profile_picture || `https://ui-avatars.com/api/?name=${post.username}&background=random`;
 
-    // Render media based on type
+    // Render media based on type (lazy load for performance)
     let mediaHtml = '';
-    if (post.media_type === 'image' && post.media_data) {
-        mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media">`;
-    } else if (post.media_type === 'video' && post.media_data) {
-        mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
-    } else if (post.media_type === 'audio' && post.media_data) {
+    if (post.media_type === 'image') {
+        if (post.media_data) {
+            // Media already loaded (e.g., from socket.io new post)
+            mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media">`;
+        } else {
+            // Lazy load media
+            mediaHtml = `<img data-post-id="${post.id}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999'%3ELoading...%3C/text%3E%3C/svg%3E" alt="Post image" class="post-media lazy-media" loading="lazy">`;
+        }
+    } else if (post.media_type === 'video') {
+        if (post.media_data) {
+            mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
+        } else {
+            mediaHtml = `<video data-post-id="${post.id}" class="post-media lazy-media" controls><source type="video/mp4"></video>`;
+        }
+    } else if (post.media_type === 'audio') {
         const duration = post.audio_duration ? formatDuration(post.audio_duration) : '';
-        mediaHtml = `
-            <div class="post-audio">
-                <audio controls class="audio-player">
-                    <source src="${post.media_data}" type="audio/${post.audio_format || 'mpeg'}">
-                    Your browser does not support audio playback.
-                </audio>
-                ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
-            </div>
-        `;
+        if (post.media_data) {
+            mediaHtml = `
+                <div class="post-audio">
+                    <audio controls class="audio-player">
+                        <source src="${post.media_data}" type="audio/${post.audio_format || 'mpeg'}">
+                        Your browser does not support audio playback.
+                    </audio>
+                    ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
+                </div>
+            `;
+        } else {
+            mediaHtml = `
+                <div class="post-audio">
+                    <audio controls class="audio-player lazy-media" data-post-id="${post.id}">
+                        <source type="audio/${post.audio_format || 'mpeg'}">
+                        Your browser does not support audio playback.
+                    </audio>
+                    ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
+                </div>
+            `;
+        }
     }
 
     // Render tags
