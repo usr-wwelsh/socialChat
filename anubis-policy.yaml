@@ -1,4 +1,10 @@
 bots:
+  # Immediately DENY common scanner/exploit paths - no challenge needed
+  - name: deny-scanner-paths
+    path_regex: >-
+      /\.(env|git|svn|htaccess|htpasswd|DS_Store)|/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php)|/(phpmyadmin|pma|myadmin|adminer)|/(\.well-known/security\.txt|config\.(php|json|yml|yaml))|/(admin|administrator|login|signin|api/v1/auth|backup|db|database|sql|dump)|\.sql$|\.bak$|\.old$|\.conf$
+    action: DENY
+
   # Allow static preview assets without challenge (OG images, favicon, etc.)
   # Needed because Meta's bot also fetches the og:image URL and would get blocked
   - name: preview-assets
@@ -35,7 +41,7 @@ openGraph:
 
 status_codes:
   CHALLENGE: 200
-  DENY: 200
+  DENY: 403
 
 store:
   backend: memory
@@ -45,6 +51,9 @@ thresholds:
   - name: minimal-suspicion
     expression: weight <= 0
     action: ALLOW
+  - name: obvious-bot
+    expression: weight >= 50
+    action: DENY
   - name: mild-suspicion
     expression:
       all:
