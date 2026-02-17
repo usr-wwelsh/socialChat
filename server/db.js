@@ -19,10 +19,10 @@ const poolConfig = process.env.DATABASE_URL
 
 const pool = new Pool(poolConfig);
 
-// Test database connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
-});
+// Test database connection (commented out to reduce log spam from pool connections)
+// pool.on('connect', () => {
+//   console.log('Connected to PostgreSQL database');
+// });
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
