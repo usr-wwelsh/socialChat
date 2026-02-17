@@ -1,8 +1,9 @@
 bots:
   # Immediately DENY common scanner/exploit paths - no challenge needed
+  # Only block paths that are DEFINITELY not part of the app (WordPress, PHP admin panels, dotfiles, backups)
   - name: deny-scanner-paths
     path_regex: >-
-      /\.(env|git|svn|htaccess|htpasswd|DS_Store)|/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php)|/(phpmyadmin|pma|myadmin|adminer)|/(\.well-known/security\.txt|config\.(php|json|yml|yaml))|/(admin|administrator|login|signin|api/v1/auth|backup|db|database|sql|dump)|\.sql$|\.bak$|\.old$|\.conf$
+      /\.(env|git|svn|htaccess|htpasswd|DS_Store)|/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php)|/(phpmyadmin|pma|myadmin|adminer|mysql)|\.php$|\.sql$|\.bak$|\.old$|\.backup$|\.conf$|/config\.(php|yml|yaml|ini)$
     action: DENY
 
   # Allow static preview assets without challenge (OG images, favicon, etc.)
