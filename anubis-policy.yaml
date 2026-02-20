@@ -6,6 +6,12 @@ bots:
       /\.(env|git|svn|htaccess|htpasswd|DS_Store)|/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php)|/(phpmyadmin|pma|myadmin|adminer|mysql)|\.php$|\.sql$|\.bak$|\.old$|\.backup$|\.conf$|/config\.(php|yml|yaml|ini)$
     action: DENY
 
+  # Allow Socket.io connections through without challenge
+  # Anubis doesn't support WebSocket proxying, so socket.io paths must bypass it
+  - name: allow-socketio
+    path_regex: ^/socket\.io/
+    action: ALLOW
+
   # Allow static preview assets without challenge (OG images, favicon, etc.)
   # Needed because Meta's bot also fetches the og:image URL and would get blocked
   - name: preview-assets
