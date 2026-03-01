@@ -36,17 +36,16 @@ npm install
 psql -U postgres
 CREATE DATABASE socialchat;
 ```
+   The database schema will be automatically initialized when the server starts.
 
-4. Run the database schema (see server/schema.sql)
-
-5. Start the server:
+4. Start the server:
 ```bash
 npm start
 # or for development with auto-reload
 npm run dev
 ```
 
-6. Open http://localhost:3000
+5. Open http://localhost:3000
 
 ## Deployment
 
