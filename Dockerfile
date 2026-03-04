@@ -1,5 +1,5 @@
 # --- Stage 1: Get Anubis binary ---
-FROM ghcr.io/techarohq/anubis:latest AS anubis
+FROM ghcr.io/techarohq/anubis:v1.24.0 AS anubis
 
 # --- Stage 2: Build the app image ---
 FROM node:20-slim
