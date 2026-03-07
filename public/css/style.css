@@ -1,18 +1,19 @@
-/* 1socialChat - Underground Dark Aesthetic */
+/* 1socialChat - Solaris CDE Aesthetic */
 
 :root {
-    --primary-bg: #0a0a0a;
-    --secondary-bg: #1a1a1a;
-    --card-bg: #151515;
-    --accent: #00ff41;
-    --accent-hover: #00cc33;
-    --accent-gradient: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
-    --text-primary: #ffffff;
-    --text-secondary: #888888;
-    --border: #333333;
-    --success: #00ff00;
-    --error: #ff0000;
-    --warning: #ffff00;
+    --primary-bg: #1E2A38;
+    --secondary-bg: #2A3C50;
+    --card-bg: #243348;
+    --accent: #4992A7;
+    --accent-hover: #3A7A8A;
+    --accent-gradient: linear-gradient(135deg, #4992A7 0%, #3A7A8A 100%);
+    --text-primary: #D0D8E8;
+    --text-secondary: #7A8A9A;
+    --border: #3A5268;
+    --border-hover: #8A2855;
+    --success: #5A9A70;
+    --error: #B05050;
+    --warning: #EDA771;
 }
 
 * {
@@ -22,8 +23,8 @@
 }
 
 body {
-    font-family: 'Courier New', Courier, monospace;
-    background: linear-gradient(180deg, #000000 0%, #001a0a 50%, #003314 100%);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #131E2C 0%, #1A2838 50%, #1E3048 100%);
     background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.6;
@@ -101,9 +102,10 @@ a:hover {
 
 .logo-tagline {
     font-size: 0.75rem;
-    color: #00ff41;
+    color: #8A2855;
     font-weight: 400;
-    text-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+    -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 8px rgba(138, 40, 85, 0.3);
 }
 
 .nav-user {
@@ -125,15 +127,15 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .btn-primary {
     background: var(--accent-gradient);
-    color: #000000;
+    color: #0E1A28;
     font-weight: 700;
 }
 
 .btn-primary:hover {
     background: var(--accent);
-    color: #000000;
+    color: #0E1A28;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 255, 65, 0.4);
+    box-shadow: 0 4px 12px rgba(106, 158, 192, 0.4);
 }
 
 .btn-secondary {
@@ -384,7 +386,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .post:hover {
     transform: translateY(-2px);
-    border-color: var(--accent);
+    border-color: var(--border-hover);
 }
 
 .post-header {
@@ -685,6 +687,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .own-message .message-text {
     background: var(--accent);
+    color: #0E1A28;
 }
 
 .btn-delete-message {
@@ -1201,14 +1204,14 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Post Links */
 .post-link {
-    color: #4A9EFF;
+    color: #7ABCDC;
     text-decoration: none;
     word-break: break-all;
     transition: color 0.2s ease;
 }
 
 .post-link:hover {
-    color: #6BB3FF;
+    color: #9ACEE8;
     text-decoration: underline;
 }
 
@@ -1278,13 +1281,13 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Guest Banner */
 .guest-banner {
-    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    background: #8A2855;
     padding: 1.5rem 2rem;
     border-radius: 12px;
     margin: 0 auto 1.5rem;
     max-width: 1200px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(138, 40, 85, 0.4);
 }
 
 .guest-banner p {
@@ -1304,8 +1307,8 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .guest-btn-primary {
     padding: 0.75rem 2rem;
-    background: white;
-    color: #000000;
+    background: #D0D8E8;
+    color: #0E1A28;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 700;
@@ -1316,9 +1319,9 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .guest-btn-primary:hover {
     background: var(--accent);
-    color: #000000;
+    color: #0E1A28;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(106, 158, 192, 0.3);
 }
 
 .guest-btn-secondary {
@@ -1676,8 +1679,8 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     margin: 30px auto;
     padding: 15px 30px;
     background: var(--accent);
-    color: #000000;
-    border: 3px solid #000000;
+    color: #0E1A28;
+    border: 3px solid #3A5268;
     font-family: 'Courier New', Courier, monospace;
     font-size: 16px;
     font-weight: bold;

@@ -20,19 +20,17 @@
 }
 
 .stat-card {
-    background: rgba(0, 255, 255, 0.05);
-    border: 2px solid var(--neon-cyan);
+    background: rgba(106, 158, 192, 0.07);
+    border: 2px solid var(--accent, #6A9EC0);
     border-radius: 10px;
     padding: 20px;
     text-align: center;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
 }
 
 .stat-value {
     font-size: 2.5em;
     font-weight: bold;
-    color: var(--neon-cyan);
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    color: var(--accent, #6A9EC0);
     margin-bottom: 10px;
 }
 
@@ -48,7 +46,7 @@
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid var(--border, #3A5268);
 }
 
 .tab-btn {
@@ -63,12 +61,12 @@
 }
 
 .tab-btn:hover {
-    color: var(--neon-cyan);
+    color: var(--accent, #6A9EC0);
 }
 
 .tab-btn.active {
-    color: var(--neon-cyan);
-    border-bottom: 3px solid var(--neon-cyan);
+    color: var(--accent, #6A9EC0);
+    border-bottom: 3px solid var(--accent, #6A9EC0);
 }
 
 /* Tab Content */
@@ -100,8 +98,8 @@
 
 .filter-controls select {
     padding: 8px 15px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--secondary-bg, #2A3C50);
+    border: 1px solid var(--border, #3A5268);
     border-radius: 5px;
     color: var(--text-primary);
     cursor: pointer;
@@ -115,16 +113,15 @@
 }
 
 .report-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--secondary-bg, #2A3C50);
+    border: 1px solid var(--border, #3A5268);
     border-radius: 10px;
     padding: 20px;
     transition: all 0.3s ease;
 }
 
 .report-card:hover {
-    border-color: var(--neon-cyan);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: var(--accent, #6A9EC0);
 }
 
 .report-header {
@@ -145,12 +142,12 @@
 
 .report-type.post {
     background: rgba(255, 0, 255, 0.2);
-    color: var(--neon-pink);
+    color: #9A7AB0;
 }
 
 .report-type.message {
     background: rgba(0, 255, 255, 0.2);
-    color: var(--neon-cyan);
+    color: var(--accent, #6A9EC0);
 }
 
 .report-type.user {
@@ -200,7 +197,7 @@
     border-radius: 5px;
     margin: 10px 0;
     color: var(--text-primary);
-    border-left: 3px solid var(--neon-pink);
+    border-left: 3px solid #9A7AB0;
 }
 
 .report-actions {
@@ -264,8 +261,8 @@
 
 /* Users List */
 .user-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--secondary-bg, #2A3C50);
+    border: 1px solid var(--border, #3A5268);
     border-radius: 10px;
     padding: 20px;
     transition: all 0.3s ease;
@@ -276,7 +273,7 @@
 }
 
 .user-card:hover {
-    border-color: var(--neon-cyan);
+    border-color: var(--accent, #6A9EC0);
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
 }
 
