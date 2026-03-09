@@ -152,7 +152,7 @@ Your app will be live at a Railway-provided URL!
 
 ### UI Features
 - Responsive design
-- Synthwave-inspired dark theme
+- Solaris CDE-inspired dark theme
 - Expandable chat window
 - Scrollable posts feed
 - Real-time updates
