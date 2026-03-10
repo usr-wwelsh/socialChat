@@ -557,10 +557,10 @@ function renderPost(post) {
     if (post.media_type === 'image') {
         if (post.media_data) {
             // Media already loaded (e.g., from socket.io new post)
-            mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media">`;
+            mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media" data-lightbox>`;
         } else {
             // Lazy load media
-            mediaHtml = `<img data-post-id="${post.id}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999'%3ELoading...%3C/text%3E%3C/svg%3E" alt="Post image" class="post-media lazy-media" loading="lazy">`;
+            mediaHtml = `<img data-post-id="${post.id}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999'%3ELoading...%3C/text%3E%3C/svg%3E" alt="Post image" class="post-media lazy-media" data-lightbox loading="lazy">`;
         }
     } else if (post.media_type === 'video') {
         if (post.media_data) {
@@ -1121,3 +1121,33 @@ function updateAllTimestamps() {
         }
     });
 }
+
+// Image lightbox
+(function initLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const closeBtn = document.getElementById('closeLightbox');
+    if (!lightbox || !lightboxImg) return;
+
+    document.addEventListener('click', function(e) {
+        const img = e.target.closest('img[data-lightbox]');
+        if (!img) return;
+        // Skip placeholder SVGs (not yet loaded)
+        if (!img.src || img.src.startsWith('data:image/svg+xml')) return;
+        lightboxImg.src = img.src;
+        lightbox.classList.add('active');
+    });
+
+    function closeLightbox() {
+        lightbox.classList.remove('active');
+        lightboxImg.src = '';
+    }
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLightbox();
+    });
+}());

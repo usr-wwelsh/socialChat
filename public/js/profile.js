@@ -114,7 +114,7 @@ function renderPost(post) {
     // Render media based on type
     let mediaHtml = '';
     if (post.media_type === 'image' && post.media_data) {
-        mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media">`;
+        mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media" data-lightbox>`;
     } else if (post.media_type === 'video' && post.media_data) {
         mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
     } else if (post.media_type === 'audio' && post.media_data) {
@@ -703,3 +703,32 @@ document.getElementById('downloadDataBtn')?.addEventListener('click', async () =
         button.textContent = '📊 Download My Data';
     }
 });
+
+// Image lightbox
+(function initLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const closeBtn = document.getElementById('closeLightbox');
+    if (!lightbox || !lightboxImg) return;
+
+    document.addEventListener('click', function(e) {
+        const img = e.target.closest('img[data-lightbox]');
+        if (!img) return;
+        if (!img.src || img.src.startsWith('data:image/svg+xml')) return;
+        lightboxImg.src = img.src;
+        lightbox.classList.add('active');
+    });
+
+    function closeLightbox() {
+        lightbox.classList.remove('active');
+        lightboxImg.src = '';
+    }
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLightbox();
+    });
+}());
