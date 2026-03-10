@@ -292,4 +292,4 @@ For issues, questions, or feature requests, create an issue in the GitHub reposi
 
 ## License
 
-ISC
+MIT
