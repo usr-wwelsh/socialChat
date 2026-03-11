@@ -118,8 +118,9 @@ app.use((req, res, next) => {
   // Skip logging for static assets (CSS, JS, images) and API health checks
   const isStaticAsset = req.path.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/);
   const isHealthCheck = req.path === '/health' || req.path === '/api/health';
+  const isUptimeKuma = /uptime.kuma/i.test(req.headers['user-agent'] || '');
 
-  if (!isStaticAsset && !isHealthCheck) {
+  if (!isStaticAsset && !isHealthCheck && !isUptimeKuma) {
     const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
