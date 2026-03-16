@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { query } = require('../db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 class BotService {
   constructor() {

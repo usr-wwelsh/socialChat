@@ -2,7 +2,7 @@
 set -e
 
 # Start the Node.js app on internal port 3000
-PORT=3000 node server/index.js &
+PORT=3000 bun server/index.js &
 NODE_PID=$!
 
 # Start Anubis as the public-facing reverse proxy

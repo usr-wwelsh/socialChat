@@ -2,13 +2,13 @@
 FROM ghcr.io/techarohq/anubis:v1.24.0 AS anubis
 
 # --- Stage 2: Build the app image ---
-FROM node:20-slim
+FROM oven/bun:1
 
 WORKDIR /app
 
 # Install dependencies first (layer caching)
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY package.json ./
+RUN bun install --production
 
 # Copy app code
 COPY . .

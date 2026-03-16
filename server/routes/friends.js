@@ -16,24 +16,9 @@ router.get('/', requireAuth, async (req, res) => {
 
     const result = await query(
       `SELECT
-        f.id,
-        f.status,
-        f.created_at,
-        f.display_order,
-        f.requester_id,
-        f.receiver_id,
-        json_build_object(
-          'id', rqu.id,
-          'username', rqu.username,
-          'profile_picture', rqu.profile_picture,
-          'bio', rqu.bio
-        ) as requester,
-        json_build_object(
-          'id', ru.id,
-          'username', ru.username,
-          'profile_picture', ru.profile_picture,
-          'bio', ru.bio
-        ) as receiver
+        f.id, f.status, f.created_at, f.display_order, f.requester_id, f.receiver_id,
+        rqu.id as rqu_id, rqu.username as rqu_username, rqu.profile_picture as rqu_profile_picture, rqu.bio as rqu_bio,
+        ru.id as ru_id, ru.username as ru_username, ru.profile_picture as ru_profile_picture, ru.bio as ru_bio
        FROM friendships f
        JOIN users rqu ON f.requester_id = rqu.id
        JOIN users ru ON f.receiver_id = ru.id
@@ -43,7 +28,13 @@ router.get('/', requireAuth, async (req, res) => {
       [userId]
     );
 
-    res.json({ friends: result.rows });
+    const friends = result.rows.map(row => ({
+      id: row.id, status: row.status, created_at: row.created_at,
+      display_order: row.display_order, requester_id: row.requester_id, receiver_id: row.receiver_id,
+      requester: { id: row.rqu_id, username: row.rqu_username, profile_picture: row.rqu_profile_picture, bio: row.rqu_bio },
+      receiver: { id: row.ru_id, username: row.ru_username, profile_picture: row.ru_profile_picture, bio: row.ru_bio }
+    }));
+    res.json({ friends });
   } catch (error) {
     console.error('Get friends error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -105,16 +96,8 @@ router.get('/requests/received', requireAuth, async (req, res) => {
 
     const result = await query(
       `SELECT
-        f.id,
-        f.status,
-        f.created_at,
-        f.requester_id,
-        json_build_object(
-          'id', u.id,
-          'username', u.username,
-          'profile_picture', u.profile_picture,
-          'bio', u.bio
-        ) as requester
+        f.id, f.status, f.created_at, f.requester_id,
+        u.id as u_id, u.username, u.profile_picture, u.bio
        FROM friendships f
        JOIN users u ON f.requester_id = u.id
        WHERE f.receiver_id = $1 AND f.status = 'pending'
@@ -122,7 +105,11 @@ router.get('/requests/received', requireAuth, async (req, res) => {
       [userId]
     );
 
-    res.json({ requests: result.rows });
+    const requests = result.rows.map(row => ({
+      id: row.id, status: row.status, created_at: row.created_at, requester_id: row.requester_id,
+      requester: { id: row.u_id, username: row.username, profile_picture: row.profile_picture, bio: row.bio }
+    }));
+    res.json({ requests });
   } catch (error) {
     console.error('Get received requests error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -136,16 +123,8 @@ router.get('/requests/sent', requireAuth, async (req, res) => {
 
     const result = await query(
       `SELECT
-        f.id,
-        f.status,
-        f.created_at,
-        f.receiver_id,
-        json_build_object(
-          'id', u.id,
-          'username', u.username,
-          'profile_picture', u.profile_picture,
-          'bio', u.bio
-        ) as receiver
+        f.id, f.status, f.created_at, f.receiver_id,
+        u.id as u_id, u.username, u.profile_picture, u.bio
        FROM friendships f
        JOIN users u ON f.receiver_id = u.id
        WHERE f.requester_id = $1 AND f.status = 'pending'
@@ -153,7 +132,11 @@ router.get('/requests/sent', requireAuth, async (req, res) => {
       [userId]
     );
 
-    res.json({ requests: result.rows });
+    const requests = result.rows.map(row => ({
+      id: row.id, status: row.status, created_at: row.created_at, receiver_id: row.receiver_id,
+      receiver: { id: row.u_id, username: row.username, profile_picture: row.profile_picture, bio: row.bio }
+    }));
+    res.json({ requests });
   } catch (error) {
     console.error('Get sent requests error:', error);
     res.status(500).json({ error: 'Internal server error' });

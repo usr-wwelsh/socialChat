@@ -16,7 +16,7 @@ router.get('/search', async (req, res) => {
     const result = await query(
       `SELECT id, username, bio, profile_picture, created_at
        FROM users
-       WHERE username ILIKE $1 AND is_banned = FALSE
+       WHERE username LIKE $1 AND is_banned = FALSE
        ORDER BY username
        LIMIT 20`,
       [`%${searchQuery}%`]
