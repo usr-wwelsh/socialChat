@@ -243,6 +243,9 @@ app.get('/moderation.html', async (req, res) => {
   }
 });
 
+// Health check for Railway/uptime monitors
+app.get('/health', (req, res) => res.sendStatus(200));
+
 // Serve media files with long-lived cache headers
 app.use('/media', express.static(MEDIA_DIR, { maxAge: '7d', immutable: true }));
 
