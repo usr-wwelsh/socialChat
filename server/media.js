@@ -1,6 +1,9 @@
 const path = require('path');
 const { mkdirSync, unlinkSync } = require('fs');
 const crypto = require('crypto');
+const sharp = require('sharp');
+
+const IMAGE_MIME_TYPES_TO_COMPRESS = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 const MEDIA_DIR = process.env.MEDIA_PATH || path.join(__dirname, '..', 'media');
 
@@ -27,10 +30,17 @@ function ensureMediaDir() {
 }
 
 async function saveMediaFromBuffer(buffer, mimeType, prefix) {
-  const ext = MIME_TO_EXT[mimeType] || '.bin';
+  let saveBuffer = buffer;
+  let ext = MIME_TO_EXT[mimeType] || '.bin';
+
+  if (IMAGE_MIME_TYPES_TO_COMPRESS.has(mimeType)) {
+    saveBuffer = await sharp(buffer).webp({ quality: 82 }).toBuffer();
+    ext = '.webp';
+  }
+
   const filename = `${prefix}-${crypto.randomUUID()}${ext}`;
   const filePath = path.join(MEDIA_DIR, filename);
-  await Bun.write(filePath, buffer);
+  await Bun.write(filePath, saveBuffer);
   return `/media/${filename}`;
 }
 
