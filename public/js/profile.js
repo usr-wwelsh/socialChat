@@ -113,16 +113,16 @@ function renderPost(post) {
 
     // Render media based on type
     let mediaHtml = '';
-    if (post.media_type === 'image' && post.media_data) {
-        mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media" data-lightbox>`;
-    } else if (post.media_type === 'video' && post.media_data) {
-        mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
-    } else if (post.media_type === 'audio' && post.media_data) {
+    if (post.media_type === 'image' && post.media_url) {
+        mediaHtml = `<img src="${post.media_url}" alt="Post image" class="post-media" data-lightbox loading="lazy">`;
+    } else if (post.media_type === 'video' && post.media_url) {
+        mediaHtml = `<video src="${post.media_url}" controls class="post-media"></video>`;
+    } else if (post.media_type === 'audio' && post.media_url) {
         const duration = post.audio_duration ? formatDuration(post.audio_duration) : '';
         mediaHtml = `
             <div class="post-audio">
                 <audio controls class="audio-player">
-                    <source src="${post.media_data}" type="audio/${post.audio_format || 'mpeg'}">
+                    <source src="${post.media_url}" type="audio/${post.audio_format || 'mpeg'}">
                     Your browser does not support audio playback.
                 </audio>
                 ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
@@ -281,33 +281,22 @@ async function handleProfileUpdate(e) {
         }
     }
 
-    // Handle profile picture
-    let profilePicture = null;
-    if (profilePictureFile) {
-        if (profilePictureFile.size > 10 * 1024 * 1024) {
-            errorMessage.textContent = 'Profile picture must be less than 10MB';
-            return;
-        }
-
-        try {
-            profilePicture = await fileToBase64(profilePictureFile);
-        } catch (error) {
-            errorMessage.textContent = 'Failed to load profile picture';
-            return;
-        }
+    // Validate profile picture size
+    if (profilePictureFile && profilePictureFile.size > 10 * 1024 * 1024) {
+        errorMessage.textContent = 'Profile picture must be less than 10MB';
+        return;
     }
 
     try {
+        const formData = new FormData();
+        if (bio) formData.append('bio', bio);
+        if (links) formData.append('links', JSON.stringify(links));
+        if (profilePictureFile) formData.append('profile_picture', profilePictureFile);
+
         const response = await fetch('/api/profiles/me', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                bio: bio || null,
-                profile_picture: profilePicture,
-                links: links ? JSON.stringify(links) : null
-            })
+            body: formData
+            // No Content-Type — browser sets multipart boundary automatically
         });
 
         if (response.ok) {
@@ -347,15 +336,6 @@ function formatDate(dateString) {
     if (diffDays < 7) return `${diffDays}d ago`;
 
     return date.toLocaleDateString();
-}
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
 }
 
 function escapeHtml(text) {

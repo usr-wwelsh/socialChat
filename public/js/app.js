@@ -224,12 +224,3 @@ function formatDate(dateString) {
     return date.toLocaleDateString();
 }
 
-// Helper function to convert file to Base64
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}

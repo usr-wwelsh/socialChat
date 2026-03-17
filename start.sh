@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Ensure media directory exists
+mkdir -p "${MEDIA_PATH:-/app/media}"
+
 # Start the Node.js app on internal port 3000
 PORT=3000 bun server/index.js &
 NODE_PID=$!

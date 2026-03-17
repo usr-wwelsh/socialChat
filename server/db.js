@@ -64,6 +64,8 @@ if (isPostgres) {
 
 const initDatabase = async () => {
   const fs = require('fs');
+  const { ensureMediaDir } = require('./media');
+  ensureMediaDir();
 
   if (!isPostgres) {
     // SQLite: skip init if tables already exist (data preserved)

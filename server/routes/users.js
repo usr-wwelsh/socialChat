@@ -23,7 +23,7 @@ router.get('/export-data', requireAuth, async (req, res) => {
 
     // Get user's posts (only their posts, never others)
     const postsResult = await query(
-      'SELECT id, content, media_type, media_data, visibility, audio_duration, audio_format, audio_title, genre, created_at FROM posts WHERE user_id = $1 AND deleted_by_mod = FALSE ORDER BY created_at DESC',
+      'SELECT id, content, media_type, media_url, visibility, audio_duration, audio_format, audio_title, genre, created_at FROM posts WHERE user_id = $1 AND deleted_by_mod = FALSE ORDER BY created_at DESC',
       [userId]
     );
 
@@ -83,7 +83,7 @@ router.get('/export-data', requireAuth, async (req, res) => {
         id: post.id,
         content: post.content,
         mediaType: post.media_type,
-        mediaData: post.media_data ? '[BASE64_DATA_REDACTED]' : null, // Don't export massive base64 in JSON
+        mediaUrl: post.media_url || null,
         visibility: post.visibility,
         audioDuration: post.audio_duration,
         audioFormat: post.audio_format,

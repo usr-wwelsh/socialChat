@@ -1,9 +1,10 @@
 // Posts feed functionality
 
-let currentMediaData = null;
+let currentMediaFile = null;
 let currentMediaType = null;
 let currentAudioDuration = null;
 let currentAudioFormat = null;
+let _previewObjectUrl = null;
 let postsSocket = null;
 
 // Pagination state
@@ -162,7 +163,7 @@ function setupPostCreation() {
     removeMediaBtn.addEventListener('click', clearMedia);
 }
 
-async function handleImageUpload(e) {
+function handleImageUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -172,27 +173,24 @@ async function handleImageUpload(e) {
         return;
     }
 
-    try {
-        currentMediaData = await fileToBase64(file);
-        currentMediaType = 'image';
+    currentMediaFile = file;
+    currentMediaType = 'image';
+    if (_previewObjectUrl) URL.revokeObjectURL(_previewObjectUrl);
+    _previewObjectUrl = URL.createObjectURL(file);
 
-        const mediaPreview = document.getElementById('mediaPreview');
-        const mediaPreviewImg = document.getElementById('mediaPreviewImg');
-        const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
-        const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
+    const mediaPreview = document.getElementById('mediaPreview');
+    const mediaPreviewImg = document.getElementById('mediaPreviewImg');
+    const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
+    const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
 
-        mediaPreviewImg.src = currentMediaData;
-        mediaPreviewImg.style.display = 'block';
-        mediaPreviewVideo.style.display = 'none';
-        if (mediaPreviewAudio) mediaPreviewAudio.style.display = 'none';
-        mediaPreview.style.display = 'block';
-    } catch (error) {
-        console.error('Image upload error:', error);
-        alert('Failed to load image');
-    }
+    mediaPreviewImg.src = _previewObjectUrl;
+    mediaPreviewImg.style.display = 'block';
+    mediaPreviewVideo.style.display = 'none';
+    if (mediaPreviewAudio) mediaPreviewAudio.style.display = 'none';
+    mediaPreview.style.display = 'block';
 }
 
-async function handleVideoUpload(e) {
+function handleVideoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -202,27 +200,24 @@ async function handleVideoUpload(e) {
         return;
     }
 
-    try {
-        currentMediaData = await fileToBase64(file);
-        currentMediaType = 'video';
+    currentMediaFile = file;
+    currentMediaType = 'video';
+    if (_previewObjectUrl) URL.revokeObjectURL(_previewObjectUrl);
+    _previewObjectUrl = URL.createObjectURL(file);
 
-        const mediaPreview = document.getElementById('mediaPreview');
-        const mediaPreviewImg = document.getElementById('mediaPreviewImg');
-        const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
-        const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
+    const mediaPreview = document.getElementById('mediaPreview');
+    const mediaPreviewImg = document.getElementById('mediaPreviewImg');
+    const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
+    const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
 
-        mediaPreviewVideo.src = currentMediaData;
-        mediaPreviewVideo.style.display = 'block';
-        mediaPreviewImg.style.display = 'none';
-        if (mediaPreviewAudio) mediaPreviewAudio.style.display = 'none';
-        mediaPreview.style.display = 'block';
-    } catch (error) {
-        console.error('Video upload error:', error);
-        alert('Failed to load video');
-    }
+    mediaPreviewVideo.src = _previewObjectUrl;
+    mediaPreviewVideo.style.display = 'block';
+    mediaPreviewImg.style.display = 'none';
+    if (mediaPreviewAudio) mediaPreviewAudio.style.display = 'none';
+    mediaPreview.style.display = 'block';
 }
 
-async function handleAudioUpload(e) {
+function handleAudioUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -240,40 +235,41 @@ async function handleAudioUpload(e) {
         return;
     }
 
-    try {
-        currentMediaData = await fileToBase64(file);
-        currentMediaType = 'audio';
-        currentAudioFormat = format;
+    currentMediaFile = file;
+    currentMediaType = 'audio';
+    currentAudioFormat = format;
+    if (_previewObjectUrl) URL.revokeObjectURL(_previewObjectUrl);
+    _previewObjectUrl = URL.createObjectURL(file);
 
-        // Create temporary audio element to get duration
-        const audio = new Audio(currentMediaData);
-        audio.addEventListener('loadedmetadata', () => {
-            currentAudioDuration = Math.floor(audio.duration);
-        });
+    // Get duration from a temporary audio element
+    const audio = new Audio(_previewObjectUrl);
+    audio.addEventListener('loadedmetadata', () => {
+        currentAudioDuration = Math.floor(audio.duration);
+    });
 
-        const mediaPreview = document.getElementById('mediaPreview');
-        const mediaPreviewImg = document.getElementById('mediaPreviewImg');
-        const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
-        const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
+    const mediaPreview = document.getElementById('mediaPreview');
+    const mediaPreviewImg = document.getElementById('mediaPreviewImg');
+    const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
+    const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
 
-        if (mediaPreviewAudio) {
-            mediaPreviewAudio.src = currentMediaData;
-            mediaPreviewAudio.style.display = 'block';
-        }
-        mediaPreviewImg.style.display = 'none';
-        mediaPreviewVideo.style.display = 'none';
-        mediaPreview.style.display = 'block';
-    } catch (error) {
-        console.error('Audio upload error:', error);
-        alert('Failed to load audio');
+    if (mediaPreviewAudio) {
+        mediaPreviewAudio.src = _previewObjectUrl;
+        mediaPreviewAudio.style.display = 'block';
     }
+    mediaPreviewImg.style.display = 'none';
+    mediaPreviewVideo.style.display = 'none';
+    mediaPreview.style.display = 'block';
 }
 
 function clearMedia() {
-    currentMediaData = null;
+    currentMediaFile = null;
     currentMediaType = null;
     currentAudioDuration = null;
     currentAudioFormat = null;
+    if (_previewObjectUrl) {
+        URL.revokeObjectURL(_previewObjectUrl);
+        _previewObjectUrl = null;
+    }
 
     document.getElementById('mediaPreview').style.display = 'none';
     document.getElementById('mediaPreviewImg').src = '';
@@ -290,31 +286,31 @@ async function createPost() {
     const content = document.getElementById('postContent').value.trim();
     const visibility = document.getElementById('postVisibility')?.value || 'public';
 
-    if (!content && !currentMediaData) {
+    if (!content && !currentMediaFile) {
         alert('Please add some content or media');
         return;
     }
 
     try {
-        const postData = {
-            content,
-            media_type: currentMediaType,
-            media_data: currentMediaData,
-            visibility: visibility
-        };
+        const formData = new FormData();
+        formData.append('content', content);
+        formData.append('visibility', visibility);
 
-        // Add audio metadata if audio post
+        if (currentMediaType) {
+            formData.append('media_type', currentMediaType);
+        }
+        if (currentMediaFile) {
+            formData.append('media', currentMediaFile);
+        }
         if (currentMediaType === 'audio') {
-            postData.audio_duration = currentAudioDuration;
-            postData.audio_format = currentAudioFormat;
+            if (currentAudioDuration) formData.append('audio_duration', currentAudioDuration);
+            if (currentAudioFormat) formData.append('audio_format', currentAudioFormat);
         }
 
         const response = await fetch('/api/posts', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(postData)
+            body: formData
+            // No Content-Type header — browser sets multipart boundary automatically
         });
 
         if (!response.ok) {
@@ -406,9 +402,6 @@ async function loadPosts(tagFilter = null, append = false) {
         // Attach event listeners
         attachPostEventListeners();
 
-        // Lazy load media using Intersection Observer
-        lazyLoadMedia();
-
         // Show/hide Load More button
         if (hasMorePosts) {
             showLoadMoreButton();
@@ -420,73 +413,6 @@ async function loadPosts(tagFilter = null, append = false) {
         if (!append) {
             postsContainer.innerHTML = '<p class="error">Failed to load posts</p>';
         }
-    }
-}
-
-// Lazy load media when posts come into view
-function lazyLoadMedia() {
-    const lazyElements = document.querySelectorAll('.lazy-media');
-
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const element = entry.target;
-                    const postId = element.dataset.postId;
-
-                    if (postId && !element.dataset.loaded) {
-                        element.dataset.loaded = 'true';
-                        loadMediaForPost(postId, element);
-                        observer.unobserve(element);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '50px' // Start loading 50px before element is visible
-        });
-
-        lazyElements.forEach(element => {
-            if (!element.dataset.loaded) {
-                imageObserver.observe(element);
-            }
-        });
-    } else {
-        // Fallback for browsers without IntersectionObserver
-        lazyElements.forEach(element => {
-            const postId = element.dataset.postId;
-            if (postId && !element.dataset.loaded) {
-                element.dataset.loaded = 'true';
-                loadMediaForPost(postId, element);
-            }
-        });
-    }
-}
-
-// Load media for a specific post
-async function loadMediaForPost(postId, element) {
-    try {
-        const response = await fetch(`/api/posts/${postId}/media`);
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        if (element.tagName === 'IMG') {
-            element.src = data.media_data;
-        } else if (element.tagName === 'VIDEO') {
-            const source = element.querySelector('source');
-            if (source) {
-                source.src = data.media_data;
-                element.load();
-            }
-        } else if (element.tagName === 'AUDIO') {
-            const source = element.querySelector('source');
-            if (source) {
-                source.src = data.media_data;
-                element.load();
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load media for post', postId, error);
     }
 }
 
@@ -552,45 +478,23 @@ function renderPost(post) {
     const isGuestUser = typeof isGuest !== 'undefined' && isGuest;
     const avatarUrl = post.user_profile_picture || `https://ui-avatars.com/api/?name=${post.username}&background=random`;
 
-    // Render media based on type (lazy load for performance)
+    // Render media based on type
     let mediaHtml = '';
-    if (post.media_type === 'image') {
-        if (post.media_data) {
-            // Media already loaded (e.g., from socket.io new post)
-            mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media" data-lightbox>`;
-        } else {
-            // Lazy load media
-            mediaHtml = `<img data-post-id="${post.id}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23999'%3ELoading...%3C/text%3E%3C/svg%3E" alt="Post image" class="post-media lazy-media" data-lightbox loading="lazy">`;
-        }
-    } else if (post.media_type === 'video') {
-        if (post.media_data) {
-            mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
-        } else {
-            mediaHtml = `<video data-post-id="${post.id}" class="post-media lazy-media" controls><source type="video/mp4"></video>`;
-        }
-    } else if (post.media_type === 'audio') {
+    if (post.media_type === 'image' && post.media_url) {
+        mediaHtml = `<img src="${post.media_url}" alt="Post image" class="post-media" data-lightbox loading="lazy">`;
+    } else if (post.media_type === 'video' && post.media_url) {
+        mediaHtml = `<video src="${post.media_url}" controls class="post-media"></video>`;
+    } else if (post.media_type === 'audio' && post.media_url) {
         const duration = post.audio_duration ? formatDuration(post.audio_duration) : '';
-        if (post.media_data) {
-            mediaHtml = `
-                <div class="post-audio">
-                    <audio controls class="audio-player">
-                        <source src="${post.media_data}" type="audio/${post.audio_format || 'mpeg'}">
-                        Your browser does not support audio playback.
-                    </audio>
-                    ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
-                </div>
-            `;
-        } else {
-            mediaHtml = `
-                <div class="post-audio">
-                    <audio controls class="audio-player lazy-media" data-post-id="${post.id}">
-                        <source type="audio/${post.audio_format || 'mpeg'}">
-                        Your browser does not support audio playback.
-                    </audio>
-                    ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
-                </div>
-            `;
-        }
+        mediaHtml = `
+            <div class="post-audio">
+                <audio controls class="audio-player">
+                    <source src="${post.media_url}" type="audio/${post.audio_format || 'mpeg'}">
+                    Your browser does not support audio playback.
+                </audio>
+                ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
+            </div>
+        `;
     }
 
     // Render tags

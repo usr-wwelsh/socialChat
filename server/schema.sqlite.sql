@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS posts (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     media_type VARCHAR(20),
-    media_data TEXT,
+    media_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     visibility VARCHAR(20) DEFAULT 'public',

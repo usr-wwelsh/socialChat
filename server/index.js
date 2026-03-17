@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { initDatabase, query } = require('./db');
+const { MEDIA_DIR } = require('./media');
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
 const profilesRoutes = require('./routes/profiles');
@@ -31,8 +32,8 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(express.json({ limit: '10mb' })); // Support Base64 images
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
 // Session configuration
@@ -241,6 +242,9 @@ app.get('/moderation.html', async (req, res) => {
     res.redirect('/403.html');
   }
 });
+
+// Serve media files with long-lived cache headers
+app.use('/media', express.static(MEDIA_DIR, { maxAge: '7d', immutable: true }));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
