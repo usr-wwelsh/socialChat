@@ -2,7 +2,7 @@
 
 A fullstack social media platform with real-time chatroom functionality.
 
-<img width="1916" height="875" alt="Screenshot 2025-10-21 223928" src="https://github.com/user-attachments/assets/8a68ae15-97c0-46db-8d7e-b9902863b775" />
+![demo](demo.png)
 
 ## Features
 
