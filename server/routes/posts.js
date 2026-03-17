@@ -460,7 +460,6 @@ router.post('/:id/react', requireAuth, async (req, res) => {
       [id, req.session.userId, reaction_type]
     );
 
-    clearFeedCache();
     res.json({ message: 'Reaction added successfully' });
   } catch (error) {
     console.error('React to post error:', error);
@@ -478,7 +477,6 @@ router.delete('/:id/react/:reaction_type', requireAuth, async (req, res) => {
       [id, req.session.userId, reaction_type]
     );
 
-    clearFeedCache();
     res.json({ message: 'Reaction removed successfully' });
   } catch (error) {
     console.error('Remove reaction error:', error);

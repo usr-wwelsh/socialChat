@@ -564,8 +564,8 @@ function renderPost(post) {
             ${mediaHtml}
             ${tagsHtml}
             <div class="post-footer">
-                <button class="btn-reaction" data-post-id="${post.id}" data-reaction="like" ${isGuestUser ? 'disabled title="Login to react to posts"' : ''}>
-                    👍 Like <span class="reaction-count">${post.reaction_count || 0}</span>
+                <button class="btn-reaction ${post.is_liked ? 'liked' : ''}" data-post-id="${post.id}" data-reaction="like" data-liked="${post.is_liked ? '1' : '0'}" ${isGuestUser ? 'disabled title="Login to react to posts"' : ''}>
+                    ${post.is_liked ? '❤️' : '👍'} Like <span class="reaction-count">${post.reaction_count || 0}</span>
                 </button>
                 <button class="btn-comment" data-post-id="${post.id}" ${isGuestUser ? 'disabled title="Login to comment"' : ''}>
                     💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
@@ -857,23 +857,41 @@ async function handleReportPost(e) {
 }
 
 async function handleReaction(e) {
-    const postId = e.currentTarget.dataset.postId;
-    const reactionType = e.currentTarget.dataset.reaction;
+    const btn = e.currentTarget;
+    const postId = btn.dataset.postId;
+    const reactionType = btn.dataset.reaction;
+    const isLiked = btn.dataset.liked === '1';
+
+    // Optimistic update
+    const countEl = btn.querySelector('.reaction-count');
+    const newLiked = !isLiked;
+    btn.dataset.liked = newLiked ? '1' : '0';
+    btn.classList.toggle('liked', newLiked);
+    btn.innerHTML = `${newLiked ? '❤️' : '👍'} Like <span class="reaction-count">${parseInt(countEl.textContent) + (newLiked ? 1 : -1)}</span>`;
 
     try {
-        const response = await fetch(`/api/posts/${postId}/react`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ reaction_type: reactionType })
-        });
+        const response = isLiked
+            ? await fetch(`/api/posts/${postId}/react/${reactionType}`, { method: 'DELETE' })
+            : await fetch(`/api/posts/${postId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction_type: reactionType })
+            });
 
-        if (response.ok) {
-            await loadPosts();
+        if (!response.ok) {
+            // Revert on failure
+            btn.dataset.liked = isLiked ? '1' : '0';
+            btn.classList.toggle('liked', isLiked);
+            const revertCount = parseInt(btn.querySelector('.reaction-count').textContent) + (newLiked ? -1 : 1);
+            btn.innerHTML = `${isLiked ? '❤️' : '👍'} Like <span class="reaction-count">${revertCount}</span>`;
         }
     } catch (error) {
         console.error('Reaction error:', error);
+        // Revert on error
+        btn.dataset.liked = isLiked ? '1' : '0';
+        btn.classList.toggle('liked', isLiked);
+        const revertCount = parseInt(btn.querySelector('.reaction-count').textContent) + (newLiked ? -1 : 1);
+        btn.innerHTML = `${isLiked ? '❤️' : '👍'} Like <span class="reaction-count">${revertCount}</span>`;
     }
 }
 
