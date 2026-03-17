@@ -348,3 +348,44 @@
     padding: 40px;
     font-size: 1.1em;
 }
+
+/* Bot Controls */
+.bot-controls h2 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.bot-trigger-panel {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(106, 158, 192, 0.07);
+    border: 2px solid var(--accent, #6A9EC0);
+    border-radius: 10px;
+    padding: 24px;
+    flex-wrap: wrap;
+}
+
+.bot-trigger-panel label {
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    white-space: nowrap;
+}
+
+.bot-trigger-panel select {
+    background: var(--bg-secondary, #1a2a35);
+    border: 1px solid var(--border, #3A5268);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    min-width: 220px;
+}
+
+.bot-trigger-status {
+    font-size: 0.95em;
+    font-weight: bold;
+}
+
+.bot-trigger-status.success { color: #4caf50; }
+.bot-trigger-status.error   { color: #f44336; }

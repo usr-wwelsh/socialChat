@@ -341,6 +341,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             loadReports(document.getElementById('reportStatusFilter').value);
         } else if (tabName === 'users') {
             loadUsers();
+        } else if (tabName === 'bots') {
+            loadBotList();
         }
     });
 });
@@ -361,6 +363,60 @@ document.getElementById('refreshUsersBtn')?.addEventListener('click', () => {
     loadStats();
 });
 
+
+// Load bot list into dropdown
+async function loadBotList() {
+    try {
+        const response = await fetch('/api/moderation/bot/list');
+        if (!response.ok) return;
+        const data = await response.json();
+        const select = document.getElementById('botSelect');
+        // Clear existing options except the random one
+        select.innerHTML = '<option value="">— random —</option>';
+        data.bots.forEach(bot => {
+            const opt = document.createElement('option');
+            opt.value = bot.username;
+            opt.textContent = `${bot.username} (${bot.style})`;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Load bot list error:', error);
+    }
+}
+
+// Trigger bot post
+document.getElementById('triggerBotBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('triggerBotBtn');
+    const status = document.getElementById('botTriggerStatus');
+    const username = document.getElementById('botSelect').value;
+
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    status.textContent = '';
+    status.className = 'bot-trigger-status';
+
+    try {
+        const response = await fetch('/api/moderation/bot/trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username || undefined })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            status.textContent = '✓ Post generated!';
+            status.classList.add('success');
+        } else {
+            status.textContent = `✗ ${data.error}`;
+            status.classList.add('error');
+        }
+    } catch (error) {
+        status.textContent = '✗ Request failed';
+        status.classList.add('error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Post';
+    }
+});
 
 // Initialize
 (async () => {

@@ -2,6 +2,7 @@ const express = require('express');
 const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
+const botService = require('../services/botService');
 
 const router = express.Router();
 
@@ -220,6 +221,45 @@ router.get('/users', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ===== BOT CONTROLS =====
+
+// Get list of bot usernames (admin only)
+router.get('/bot/list', requireAuth, requireAdmin, (req, res) => {
+  const bots = botService.getBotConfigs().map(b => ({ username: b.username, style: b.style }));
+  res.json({ bots });
+});
+
+// Force an immediate bot post (admin only)
+router.post('/bot/trigger', requireAuth, requireAdmin, async (req, res) => {
+  if (!botService.enabled) {
+    return res.status(400).json({ error: 'Bot service is not enabled' });
+  }
+
+  const { username } = req.body;
+
+  // If a specific bot was requested, temporarily override selection
+  if (username) {
+    const botIndex = botService.botUsers.findIndex(b => b.username === username);
+    if (botIndex === -1) {
+      return res.status(400).json({ error: `Bot "${username}" not found` });
+    }
+    // Monkey-patch selectNextBot just for this call
+    const origSelect = botService.selectNextBot.bind(botService);
+    botService.selectNextBot = () => { botService.selectNextBot = origSelect; return botIndex; };
+  }
+
+  // Reset cooldown so the post fires immediately
+  botService.lastPostTime = 0;
+
+  try {
+    await botService.createBotPost();
+    res.json({ message: 'Bot post triggered' });
+  } catch (error) {
+    console.error('Bot trigger error:', error);
+    res.status(500).json({ error: 'Failed to trigger bot post' });
   }
 });
 

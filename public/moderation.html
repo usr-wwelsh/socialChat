@@ -46,6 +46,7 @@
         <div class="tab-navigation">
             <button class="tab-btn active" data-tab="reports">Reports</button>
             <button class="tab-btn" data-tab="users">Users</button>
+            <button class="tab-btn" data-tab="bots">Bots</button>
         </div>
 
         <!-- Reports Tab -->
@@ -75,6 +76,21 @@
 
             <div id="usersContainer" class="users-list">
                 <p class="loading-message">Loading users...</p>
+            </div>
+        </div>
+
+        <!-- Bots Tab -->
+        <div id="botsTab" class="tab-content">
+            <div class="bot-controls">
+                <h2>🤖 Bot Controls</h2>
+                <div class="bot-trigger-panel">
+                    <label for="botSelect">Select Bot</label>
+                    <select id="botSelect">
+                        <option value="">— random —</option>
+                    </select>
+                    <button id="triggerBotBtn" class="btn-primary">Generate Post</button>
+                    <span id="botTriggerStatus" class="bot-trigger-status"></span>
+                </div>
             </div>
         </div>
 
