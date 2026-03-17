@@ -71,7 +71,8 @@ router.get('/', async (req, res) => {
          p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
          u.username, u.profile_picture as user_profile_picture,
          (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
-         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count
+         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
+         (SELECT EXISTS(SELECT 1 FROM post_reactions WHERE post_id = p.id AND user_id = $3 AND reaction_type = 'like')) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.deleted_by_mod = FALSE
