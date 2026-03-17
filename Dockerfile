@@ -23,5 +23,6 @@ RUN chmod +x /app/start.sh
 ENV DIFFICULTY=4
 ENV SERVE_ROBOTS_TXT=true
 ENV POLICY_FNAME=/app/anubis-policy.yaml
+ENV ANUBIS_REAL_IP_HEADER=X-Forwarded-For
 
 ENTRYPOINT ["/app/start.sh"]
