@@ -6,6 +6,11 @@ bots:
       /\.(env|git|svn|htaccess|htpasswd|DS_Store)|/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php)|/(phpmyadmin|pma|myadmin|adminer|mysql)|\.php$|\.sql$|\.bak$|\.old$|\.backup$|\.conf$|/config\.(php|yml|yaml|ini)$
     action: DENY
 
+  # Allow health check through without challenge (Railway deploy checks)
+  - name: allow-health
+    path_regex: ^/health$
+    action: ALLOW
+
   # Allow Socket.io connections through without challenge
   # Anubis doesn't support WebSocket proxying, so socket.io paths must bypass it
   - name: allow-socketio
