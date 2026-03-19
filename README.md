@@ -1,56 +1,100 @@
-# 1socialChat
+# socialChat
 
-A fullstack social media platform with real-time chatroom functionality.
+**Own your social network.** socialChat is a fast, self-hostable social media platform — deploy it in minutes on your own hardware or any cloud provider and run a community completely under your control.
 
 ![demo](demo.png)
 
+## Why socialChat?
+
+- **Decentralized by design** — no central authority, no ads, no data harvesting. Your instance, your rules.
+- **Blazing fast** — built on Bun with a lightweight vanilla JS frontend and in-memory feed caching. No framework bloat, no unnecessary round-trips.
+- **Truly self-hostable** — single command setup, SQLite out of the box, PostgreSQL when you need to scale.
+- **Real-time** — live chat and reactions powered by Socket.io with no perceptible lag.
+
 ## Features
 
-- User authentication (username/password)
-- Customizable user profiles (bio, profile picture, links)
-- Post text, images, and videos (up to 10MB)
-- Edit and delete posts
-- Real-time global chatroom
-- User-created chatrooms
-- Post reactions
-- Clickable usernames linking to profiles
+- User authentication with secure password hashing
+- Customizable profiles — bio, profile picture, links
+- Post text, images, video, and audio (up to 10MB, auto-compressed to WebP)
+- Post visibility controls — public, friends-only, or private
+- Edit and delete posts with soft moderation
+- Post and comment reactions
+- Real-time global chatroom and user-created chatrooms with typing indicators
+- Friend system with MySpace-style top friend ranking
+- Hashtag and tagging system
+- Guest access — browse and chat without an account
+- Admin moderation dashboard — reports, bans, content removal
+- Optional AI bot service with configurable personalities (see below)
+- Native Android client — [socialChatAndroid](https://github.com/usr-wwelsh/socialChatAndroid)
 
 ## Tech Stack
 
-- **Runtime**: Bun
-- **Backend**: Express, Socket.io
-- **Database**: SQLite (default) · PostgreSQL (optional, set `DATABASE_URL=postgresql://...`)
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3
-- **Auth**: bcryptjs password hashing, express-session
+| Layer | Tech |
+|-------|------|
+| Runtime | Bun |
+| Backend | Express, Socket.io |
+| Database | SQLite (default) · PostgreSQL (optional) |
+| Frontend | Vanilla JS, HTML5, CSS3 |
+| Auth | bcryptjs, express-session |
+| Media | sharp (WebP compression), filesystem storage |
 
-## Setup
+## Quick Start
 
-1. Install dependencies:
 ```bash
 bun install
+bun start
 ```
 
-2. Start the server:
+Open http://localhost:3000. A SQLite database is created automatically on first run.
+
 ```bash
-bun start
-# or for development with auto-reload
+# Custom DB path
+SQLITE_PATH=/path/to/db bun start
+
+# Development with auto-reload
 bun dev
 ```
 
-3. Open http://localhost:3000
+### PostgreSQL
 
-The SQLite database file is created automatically at `./db` on first run. To use a custom path:
-```bash
-SQLITE_PATH=/path/to/db bun start
+Set `DATABASE_URL=postgresql://...` and the app switches to PostgreSQL automatically — no other changes needed.
+
+## AI Bot Service (optional)
+
+socialChat includes an optional AI bot service powered by Google Gemini. Bots generate posts using context from recent activity on your instance (RAG), making them feel native to your community.
+
+Seven bot personas ship out of the box — each with a distinct posting style, topic focus, and character:
+
+| Bot | Personality |
+|-----|-------------|
+| `internet_username` | Chaotic typo-poster, unhinged energy, leetspeak |
+| `beaurocrat` | Thoughtful tech blogger, articulate takes |
+| `gEK4o3m` | Link spammer — drops 3–5 URLs at a time |
+| `cosmicObserver` | Space and UFO enthusiast, mysterious and poetic |
+| `UrbanMythologist` | Internet historian, nostalgic about web 1.0 |
+| `signalJammer` | Punk privacy advocate, self-hosting evangelist |
+| `OffPremOps` | Cloud repatriation advocate, runs the numbers |
+
+Personas are defined in `server/services/botService.js` and can be fully customized — change the name, posting style, topic focus, and character voice to match your community. Bots post on a configurable random interval and are manageable from the admin moderation dashboard.
+
+To enable, add your Gemini API key to your `.env` file:
+
+```
+GEMINI_API_KEY=your_key_here
 ```
 
-### PostgreSQL (optional)
+## Deployment
 
-Set `DATABASE_URL=postgresql://...` and the app switches to PostgreSQL automatically.
-
-## Deployment (Railway)
+### Railway
 
 1. Push this repo to Railway
 2. Add a **Volume** service, mount path `/data`
-3. Set env var: `SQLITE_PATH=/data/db`
-4. Upload your existing `db` file to the volume at `/data/db`
+3. Set `SQLITE_PATH=/data/db`
+
+### Self-hosted
+
+Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at port 3000 and you're live. A Dockerfile is included for container deployments.
+
+## Android Client
+
+A native Android client is available at [usr-wwelsh/socialChatAndroid](https://github.com/usr-wwelsh/socialChatAndroid).
