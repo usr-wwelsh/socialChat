@@ -2,6 +2,7 @@ const path = require('path');
 const { mkdirSync, unlinkSync } = require('fs');
 const crypto = require('crypto');
 const sharp = require('sharp');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const IMAGE_MIME_TYPES_TO_COMPRESS = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
@@ -25,6 +26,20 @@ const MIME_TO_EXT = {
   'audio/mp4': '.m4a',
 };
 
+const S3_BUCKET = process.env.S3_BUCKET || null;
+const S3_PUBLIC_URL = (process.env.S3_PUBLIC_URL || '').replace(/\/$/, '');
+
+const s3Client = S3_BUCKET
+  ? new S3Client({
+      endpoint: process.env.S3_ENDPOINT,
+      region: process.env.S3_REGION || 'auto',
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+      },
+    })
+  : null;
+
 function ensureMediaDir() {
   mkdirSync(MEDIA_DIR, { recursive: true });
 }
@@ -32,13 +47,26 @@ function ensureMediaDir() {
 async function saveMediaFromBuffer(buffer, mimeType, prefix) {
   let saveBuffer = buffer;
   let ext = MIME_TO_EXT[mimeType] || '.bin';
+  let contentType = mimeType;
 
   if (IMAGE_MIME_TYPES_TO_COMPRESS.has(mimeType)) {
     saveBuffer = await sharp(buffer).webp({ quality: 82 }).toBuffer();
     ext = '.webp';
+    contentType = 'image/webp';
   }
 
   const filename = `${prefix}-${crypto.randomUUID()}${ext}`;
+
+  if (s3Client) {
+    await s3Client.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: filename,
+      Body: saveBuffer,
+      ContentType: contentType,
+    }));
+    return `${S3_PUBLIC_URL}/${filename}`;
+  }
+
   const filePath = path.join(MEDIA_DIR, filename);
   await Bun.write(filePath, saveBuffer);
   return `/media/${filename}`;
@@ -52,15 +80,24 @@ async function saveMediaFromBase64(dataUri, prefix) {
   return saveMediaFromBuffer(buffer, mimeType, prefix);
 }
 
-function deleteMedia(urlPath) {
-  if (!urlPath || !urlPath.startsWith('/media/')) return;
-  try {
-    const filename = path.basename(urlPath);
-    const filePath = path.join(MEDIA_DIR, filename);
-    unlinkSync(filePath);
-  } catch (err) {
-    // swallow errors — file may not exist
+async function deleteMedia(urlPath) {
+  if (!urlPath) return;
+  if (urlPath.startsWith('http') && s3Client) {
+    try {
+      const key = urlPath.replace(`${S3_PUBLIC_URL}/`, '');
+      await s3Client.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+    } catch (err) {
+      // swallow errors
+    }
+  } else if (urlPath.startsWith('/media/')) {
+    try {
+      const filename = path.basename(urlPath);
+      const filePath = path.join(MEDIA_DIR, filename);
+      unlinkSync(filePath);
+    } catch (err) {
+      // swallow errors — file may not exist
+    }
   }
 }
 
-module.exports = { MEDIA_DIR, ensureMediaDir, saveMediaFromBuffer, saveMediaFromBase64, deleteMedia, MIME_TO_EXT };
+module.exports = { MEDIA_DIR, S3_BUCKET, S3_PUBLIC_URL, s3Client, ensureMediaDir, saveMediaFromBuffer, saveMediaFromBase64, deleteMedia, MIME_TO_EXT };
