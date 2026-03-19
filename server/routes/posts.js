@@ -154,6 +154,51 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get media-only posts feed (for Explore grid)
+router.get('/media', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 30;
+  const offset = parseInt(req.query.offset) || 0;
+  const userId = req.session?.userId;
+
+  try {
+    const result = await query(
+      `SELECT p.id, p.user_id, p.content, p.media_type, p.media_url, p.visibility,
+         p.created_at, p.updated_at,
+         u.username, u.profile_picture as user_profile_picture,
+         (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
+         (SELECT EXISTS(SELECT 1 FROM post_reactions WHERE post_id = p.id AND user_id = $3 AND reaction_type = 'like')) as is_liked
+       FROM posts p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.deleted_by_mod = FALSE
+         AND u.is_banned = FALSE
+         AND p.media_url IS NOT NULL
+         AND (
+           p.visibility = 'public'
+           OR p.user_id = $3
+           OR (
+             p.visibility = 'friends' AND EXISTS (
+               SELECT 1 FROM friendships f
+               WHERE f.status = 'accepted'
+                 AND ((f.requester_id = $3 AND f.receiver_id = p.user_id)
+                      OR (f.receiver_id = $3 AND f.requester_id = p.user_id))
+             )
+           )
+         )
+       ORDER BY p.created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset, userId || null]
+    );
+
+    const posts = result.rows.map(post => ({ ...post, tags: [], preview_comments: [] }));
+    const hasMore = posts.length === limit;
+    res.json({ posts, has_more: hasMore });
+  } catch (error) {
+    console.error('Get media feed error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get media for a specific post (kept for backward compatibility)
 router.get('/:id/media', async (req, res) => {
   const { id } = req.params;
