@@ -62,6 +62,48 @@ if (isPostgres) {
   };
 }
 
+// Run additive SQLite migrations for existing databases
+function runSqliteMigrations() {
+  // Add crypto columns to users if missing
+  const userCols = sqliteDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!userCols.includes('public_key')) {
+    sqliteDb.run('ALTER TABLE users ADD COLUMN public_key TEXT');
+  }
+  if (!userCols.includes('encrypted_private_key')) {
+    sqliteDb.run('ALTER TABLE users ADD COLUMN encrypted_private_key TEXT');
+  }
+  if (!userCols.includes('key_salt')) {
+    sqliteDb.run('ALTER TABLE users ADD COLUMN key_salt TEXT');
+  }
+
+  // Create DM tables if missing
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS dm_conversations (
+      id INTEGER PRIMARY KEY,
+      user1_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user2_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT ensure_user1_less CHECK (user1_id < user2_id),
+      CONSTRAINT unique_dm_pair UNIQUE (user1_id, user2_id)
+    );
+    CREATE TABLE IF NOT EXISTS dm_messages (
+      id INTEGER PRIMARY KEY,
+      conversation_id INTEGER NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,
+      sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      ciphertext TEXT NOT NULL,
+      iv TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_dm_conversations_user1 ON dm_conversations(user1_id);
+    CREATE INDEX IF NOT EXISTS idx_dm_conversations_user2 ON dm_conversations(user2_id);
+    CREATE INDEX IF NOT EXISTS idx_dm_conversations_updated ON dm_conversations(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation ON dm_messages(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_dm_messages_created ON dm_messages(created_at);
+  `);
+  console.log('SQLite DM migrations applied');
+}
+
 const initDatabase = async () => {
   const fs = require('fs');
   const { ensureMediaDir } = require('./media');
@@ -74,6 +116,8 @@ const initDatabase = async () => {
     ).get();
     if (tableCount.count > 0) {
       console.log('SQLite database already initialized, skipping schema setup');
+      // Run additive SQLite migrations for existing databases
+      runSqliteMigrations();
       return;
     }
     const schemaPath = path.join(__dirname, 'schema.sqlite.sql');
@@ -100,6 +144,7 @@ const initDatabase = async () => {
       ['migrations/add_bot_topics.sql', 'Bot topics tracking migrated successfully'],
       ['migrations/backfill_bot_hashtags.sql', 'Bot hashtags backfilled successfully'],
       ['migrations/add_visitor_analytics.sql', 'Visitor analytics tracking migrated successfully'],
+      ['migrations/add_encrypted_dms.sql', 'Encrypted DMs migrated successfully'],
     ];
 
     for (const [relPath, successMsg] of migrations) {

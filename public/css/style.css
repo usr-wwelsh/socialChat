@@ -1767,3 +1767,295 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 .btn-load-more-posts:active:not(:disabled) {
     transform: translateY(0);
 }
+
+/* ===== DM / Encrypted Messaging ===== */
+
+.chat-tabs {
+    display: flex;
+    gap: 0;
+    flex: 1;
+}
+
+.chat-tab {
+    background: var(--primary-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+}
+
+.chat-tab.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.chat-tab:hover:not(.active) {
+    background: var(--secondary-bg);
+    color: var(--text-primary);
+}
+
+.unread-badge {
+    display: inline-block;
+    background: var(--error);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 0.1rem 0.35rem;
+    border-radius: 10px;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+.chatroom-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 1rem;
+}
+
+/* DM active header — partner info row */
+.dm-active-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    border-top: 1px solid var(--border);
+    min-height: 44px;
+}
+
+.dm-partner-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+}
+
+.dm-partner-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.dm-partner-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-enc-label {
+    font-size: 0.68rem;
+    color: var(--accent);
+    opacity: 0.8;
+    letter-spacing: 0.02em;
+}
+
+.dm-compose-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.dm-compose-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Conversation list */
+.dm-conversation-list {
+    max-height: 120px;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+}
+
+.dm-conversation-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dm-conversation-list::-webkit-scrollbar-track {
+    background: var(--primary-bg);
+}
+
+.dm-conversation-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+}
+
+.dm-conversation-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+
+.dm-conversation-item:last-child {
+    border-bottom: none;
+}
+
+.dm-conversation-item:hover {
+    background: var(--secondary-bg);
+}
+
+.dm-conversation-item.active {
+    background: var(--secondary-bg);
+    border-left: 2px solid var(--accent);
+}
+
+.dm-conv-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.dm-conv-name {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-conversation-item.unread .dm-conv-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dm-conv-unread-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--error);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dm-no-convs {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Encrypted indicator in message header */
+.encrypted-indicator {
+    font-size: 0.62rem;
+    opacity: 0.45;
+    margin-left: 0.2rem;
+}
+
+/* DM message bubbles */
+.dm-message .message-content {
+    background: transparent;
+    border-left: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.dm-message .message-text {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.88rem;
+    max-width: 88%;
+    line-height: 1.4;
+}
+
+.dm-message.own-message {
+    flex-direction: row-reverse;
+}
+
+.dm-message.own-message .message-content {
+    align-items: flex-end;
+}
+
+.dm-message.own-message .message-header {
+    flex-direction: row-reverse;
+}
+
+.dm-message.own-message .message-username {
+    display: none;
+}
+
+.dm-message.own-message .message-text {
+    background: var(--accent);
+    color: #ddf0f5;
+    border-color: var(--accent-hover);
+}
+
+.dm-message:not(.own-message) .message-username {
+    font-size: 0.78rem;
+    color: var(--accent);
+}
+
+/* DM friend picker modal */
+.dm-friend-picker {
+    min-width: 300px;
+    max-width: 420px;
+}
+
+.dm-friend-picker h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.dm-friend-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.dm-friend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+
+.dm-friend-item:hover {
+    background: var(--secondary-bg);
+}
+
+.dm-friend-item img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.btn-message {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.btn-message:hover {
+    background: var(--accent-hover);
+}

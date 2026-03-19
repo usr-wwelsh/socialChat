@@ -20,6 +20,7 @@
 - Edit and delete posts with soft moderation
 - Post and comment reactions
 - Real-time global chatroom and user-created chatrooms with typing indicators
+- End-to-end encrypted direct messages — keys derived client-side via ECDH, server never sees plaintext
 - Friend system with MySpace-style top friend ranking
 - Hashtag and tagging system
 - Guest access — browse and chat without an account
@@ -36,7 +37,9 @@
 | Database | SQLite (default) · PostgreSQL (optional) |
 | Frontend | Vanilla JS, HTML5, CSS3 |
 | Auth | bcryptjs, express-session |
+| E2EE DMs | Web Crypto API (ECDH key exchange, AES-GCM encryption) |
 | Media | sharp (WebP compression), filesystem storage |
+| Bot protection | Anubis (PoW challenge, Docker only) |
 
 ## Quick Start
 
@@ -91,9 +94,28 @@ GEMINI_API_KEY=your_key_here
 2. Add a **Volume** service, mount path `/data`
 3. Set `SQLITE_PATH=/data/db`
 
+### Docker
+
+The included Dockerfile bundles [Anubis](https://github.com/TecharoHQ/anubis) — a proof-of-work bot challenge layer — as a reverse proxy in front of the app. When running via Docker, all public traffic passes through Anubis before reaching socialChat:
+
+- **Scanner paths** (WordPress, PHP admin panels, dotfiles, `.sql`/`.bak` files) are hard-denied with a 403
+- **Known good bots** (search crawlers, social preview scrapers) are allowed through without a challenge
+- **AI scrapers** are blocked via Anubis's built-in aggressive AI block list
+- **Browsers** complete a lightweight proof-of-work challenge; difficulty scales with suspicion score
+- Socket.io and health check endpoints bypass Anubis entirely
+
+Anubis runs on the public port; the app stays on internal port 3000. The policy is fully configurable in `anubis-policy.yaml`.
+
+```bash
+docker build -t socialchat .
+docker run -p 8080:8080 socialchat
+```
+
+Set `DIFFICULTY` (default `4`) to tune PoW difficulty, and `ANUBIS_REAL_IP_HEADER` if running behind a load balancer.
+
 ### Self-hosted
 
-Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at port 3000 and you're live. A Dockerfile is included for container deployments.
+Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at port 3000 and you're live. A Dockerfile is included for container deployments with Anubis bot protection (see above).
 
 ## Android Client
 

@@ -249,6 +249,7 @@ function renderFriendCard(friend, friendshipId) {
                 ${friend.bio ? `<p class="friend-bio">${escapeHtml(friend.bio)}</p>` : ''}
             </div>
             <div class="friend-actions">
+                <button class="btn-message" data-friend-id="${friend.id}">Message</button>
                 <button class="btn-unfriend" data-friendship-id="${friendshipId}">Unfriend</button>
             </div>
         </div>
@@ -324,6 +325,43 @@ function attachUnfriendListeners() {
             }
         });
     });
+
+    document.querySelectorAll('.btn-message').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const friendId = parseInt(e.target.dataset.friendId);
+            await openDmFromFriendsPage(friendId);
+        });
+    });
+}
+
+async function openDmFromFriendsPage(friendId) {
+    try {
+        const res = await fetch(`/api/dms/conversation-with/${friendId}`);
+        const data = await res.json();
+
+        let convId;
+        if (data.conversation) {
+            convId = data.conversation.id;
+        } else {
+            const createRes = await fetch('/api/dms/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ partnerId: friendId })
+            });
+            if (!createRes.ok) {
+                const err = await createRes.json();
+                alert(err.error || 'Failed to open DM');
+                return;
+            }
+            const createData = await createRes.json();
+            convId = createData.conversation.id;
+        }
+
+        window.location.href = `/?dm=${convId}`;
+    } catch (err) {
+        console.error('Open DM from friends page error:', err);
+        alert('Failed to open DM');
+    }
 }
 
 function attachCancelListeners() {

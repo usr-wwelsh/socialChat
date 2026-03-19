@@ -18,6 +18,8 @@ const tagsRoutes = require('./routes/tags');
 const friendsRoutes = require('./routes/friends');
 const commentsRoutes = require('./routes/comments');
 const usersRoutes = require('./routes/users');
+const keysRoutes = require('./routes/keys');
+const dmsRoutes = require('./routes/dms');
 const chatHandler = require('./socketHandlers/chat');
 const { allowGuestSocket } = require('./middleware/auth');
 const botService = require('./services/botService');
@@ -269,6 +271,12 @@ app.use('/api/friends', friendsRoutes);
 // Set Socket.io for comments route (for real-time comments)
 commentsRoutes.setSocketIO(io);
 app.use('/api/comments', commentsRoutes);
+
+app.use('/api/keys', keysRoutes);
+
+// Set Socket.io for DMs route (for real-time delivery)
+dmsRoutes.setSocketIO(io);
+app.use('/api/dms', dmsRoutes);
 
 // Socket.io connection handler
 chatHandler(io);

@@ -46,6 +46,11 @@ module.exports = (io) => {
     // Track current chatroom
     let currentChatroomId = null;
 
+    // Join personal room for DM notifications (authenticated users only)
+    if (userId) {
+      socket.join(`user_${userId}`);
+    }
+
     // Join a chatroom
     socket.on('join_chatroom', async (chatroomId) => {
       currentChatroomId = chatroomId;
@@ -200,6 +205,37 @@ module.exports = (io) => {
         isGuest: isGuest
       });
     });
+
+    // DM socket events (authenticated users only)
+    if (userId) {
+      socket.on('join_dm', async (conversationId) => {
+        try {
+          const result = await query(
+            'SELECT id FROM dm_conversations WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)',
+            [conversationId, userId]
+          );
+          if (result.rows.length === 0) {
+            socket.emit('error', { message: 'DM conversation not found or unauthorized' });
+            return;
+          }
+          socket.join(`dm_${conversationId}`);
+        } catch (err) {
+          console.error('join_dm error:', err);
+        }
+      });
+
+      socket.on('leave_dm', (conversationId) => {
+        socket.leave(`dm_${conversationId}`);
+      });
+
+      socket.on('dm_typing', (conversationId) => {
+        socket.to(`dm_${conversationId}`).emit('dm_user_typing', { userId, username: displayName });
+      });
+
+      socket.on('dm_stop_typing', (conversationId) => {
+        socket.to(`dm_${conversationId}`).emit('dm_user_stop_typing', { userId });
+      });
+    }
 
     // Handle message deletion via socket
     socket.on('delete_message', async (data) => {

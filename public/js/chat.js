@@ -4,6 +4,9 @@ let socket = null;
 let currentChatroomId = null;
 let typingTimeout = null;
 
+// Track current chat mode (rooms or dms) — also set in dm.js
+window._chatMode = 'rooms';
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('chatSection')) {
         initializeChat();
@@ -13,9 +16,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeChat() {
     socket = io();
 
+    // Expose socket globally for dm.js
+    window.socket = socket;
+
+    // Register DM socket listeners once (not inside 'connect' to avoid stacking on reconnect)
+    if (typeof initDmSocketListeners === 'function') {
+        initDmSocketListeners(socket);
+    }
+
     socket.on('connect', () => {
         console.log('Connected to chat server');
         loadChatrooms();
+        // Refresh unread badge now that we're authenticated and connected
+        if (typeof refreshUnreadBadge === 'function') {
+            refreshUnreadBadge();
+        }
     });
 
     socket.on('disconnect', () => {
@@ -28,7 +43,9 @@ function initializeChat() {
     });
 
     socket.on('new_message', (message) => {
-        displayMessage(message);
+        if (window._chatMode === 'rooms') {
+            displayMessage(message);
+        }
     });
 
     socket.on('message_deleted', (data) => {
@@ -82,16 +99,20 @@ function setupChatUI() {
     const expandChatBtn = document.getElementById('expandChatBtn');
     const minimizeChatBtn = document.getElementById('minimizeChatBtn');
 
-    sendMessageBtn.addEventListener('click', sendMessage);
+    sendMessageBtn.addEventListener('click', handleSend);
 
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            sendMessage();
+            handleSend();
         }
     });
 
     messageInput.addEventListener('input', () => {
-        handleTyping();
+        if (window._chatMode === 'dms') {
+            if (typeof handleDmTyping === 'function') handleDmTyping();
+        } else {
+            handleTyping();
+        }
     });
 
     chatroomSelect.addEventListener('change', (e) => {
@@ -158,7 +179,18 @@ async function loadMessages(chatroomId) {
     }
 }
 
+function handleSend() {
+    if (window._chatMode === 'dms') {
+        if (typeof sendDmMessage === 'function') sendDmMessage();
+    } else {
+        sendMessage();
+    }
+}
+
 function sendMessage() {
+    // Hard guard: never send to chatroom while in DMs mode
+    if (window._chatMode === 'dms') return;
+
     const messageInput = document.getElementById('messageInput');
     const message = messageInput.value.trim();
 

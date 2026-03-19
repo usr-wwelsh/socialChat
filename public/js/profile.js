@@ -373,11 +373,39 @@ async function loadFriendshipStatus(userId) {
         } else if (data.status === 'accepted') {
             friendshipActions.innerHTML = `
                 <button class="btn-success" disabled>Friends ✓</button>
+                <button class="btn-primary" onclick="messageFriend(${userId})">Message</button>
                 <button class="btn-danger" onclick="unfriend(${data.friendshipId})">Unfriend</button>
             `;
         }
     } catch (error) {
         console.error('Load friendship status error:', error);
+    }
+}
+
+async function messageFriend(userId) {
+    try {
+        const checkRes = await fetch(`/api/dms/conversation-with/${userId}`);
+        const checkData = await checkRes.json();
+        let convId;
+        if (checkData.conversation) {
+            convId = checkData.conversation.id;
+        } else {
+            const createRes = await fetch('/api/dms/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ partnerId: userId })
+            });
+            if (!createRes.ok) {
+                const err = await createRes.json();
+                alert(err.error || 'Failed to open DM');
+                return;
+            }
+            convId = (await createRes.json()).conversation.id;
+        }
+        window.location.href = `/?dm=${convId}`;
+    } catch (err) {
+        console.error('Message friend error:', err);
+        alert('Failed to open DM');
     }
 }
 

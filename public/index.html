@@ -112,20 +112,42 @@
         <div class="chat-section" id="chatSection">
             <div class="chat-header">
                 <div class="chat-title">
-                    <div class="chatroom-info">
-                        <h3 id="currentChatroomName">Chatroom</h3>
-                        <span class="user-count" id="userCount">👤 0 online</span>
+                    <!-- Tab buttons -->
+                    <div class="chat-tabs">
+                        <button class="chat-tab active" id="roomsTab" onclick="switchChatTab('rooms')">Rooms</button>
+                        <button class="chat-tab" id="dmsTab" onclick="switchChatTab('dms')">
+                            DMs <span class="unread-badge" id="dmUnreadBadge" style="display:none;">0</span>
+                        </button>
                     </div>
                     <div class="chat-controls">
                         <button class="btn-minimize" id="minimizeChatBtn">➖</button>
                         <button class="btn-expand" id="expandChatBtn">⬆️</button>
                     </div>
                 </div>
-                <div class="chatroom-selector">
-                    <select id="chatroomSelect">
-                        <option value="">Loading...</option>
-                    </select>
-                    <button class="btn-icon" id="createChatroomBtn">+</button>
+                <!-- Rooms header -->
+                <div id="roomsHeader">
+                    <div class="chatroom-info-bar">
+                        <h3 id="currentChatroomName">Chatroom</h3>
+                        <span class="user-count" id="userCount">👤 0 online</span>
+                    </div>
+                    <div class="chatroom-selector">
+                        <select id="chatroomSelect">
+                            <option value="">Loading...</option>
+                        </select>
+                        <button class="btn-icon" id="createChatroomBtn">+</button>
+                    </div>
+                </div>
+                <!-- DMs header -->
+                <div id="dmsHeader" style="display:none;">
+                    <div class="dm-active-header">
+                        <img id="dmPartnerAvatar" class="dm-partner-avatar" src="" alt="" style="display:none;">
+                        <div class="dm-partner-info">
+                            <span id="currentDmPartnerName" class="dm-partner-name">Direct Messages</span>
+                            <span class="dm-enc-label" id="dmEncLabel" style="display:none;">🔒 end-to-end encrypted</span>
+                        </div>
+                        <button class="dm-compose-btn" id="newDmBtn" title="New Message">+ New</button>
+                    </div>
+                    <div id="dmConversationList" class="dm-conversation-list"></div>
                 </div>
             </div>
 
@@ -142,6 +164,17 @@
                 <button id="sendMessageBtn" class="btn-primary">Send</button>
             </div>
         </div>
+
+        <!-- New DM friend picker modal -->
+        <div id="dmFriendPickerModal" class="modal" style="display:none;">
+            <div class="modal-content dm-friend-picker">
+                <h3>New Message</h3>
+                <div id="dmFriendPickerList" class="dm-friend-list">
+                    <div class="loading">Loading friends...</div>
+                </div>
+                <button class="btn-secondary" onclick="closeDmFriendPicker()">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -155,6 +188,8 @@
 
     <script src="/js/app.js"></script>
     <script src="/js/posts.js"></script>
+    <script src="/js/crypto.js"></script>
+    <script src="/js/dm.js"></script>
     <script src="/js/chat.js"></script>
     <script src="/js/cookie-banner.js"></script>
 </body>

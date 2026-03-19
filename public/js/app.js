@@ -201,6 +201,9 @@ function setupNavigation() {
 async function handleLogout() {
     try {
         await fetch('/api/auth/logout', { method: 'POST' });
+        if (typeof clearCachedKeys === 'function') {
+            await clearCachedKeys().catch(() => {});
+        }
         window.location.href = '/login.html';
     } catch (error) {
         console.error('Logout error:', error);

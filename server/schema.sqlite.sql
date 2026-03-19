@@ -17,7 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
     banned_by INTEGER REFERENCES users(id),
     banned_reason TEXT,
     is_bot BOOLEAN DEFAULT FALSE,
-    is_guest BOOLEAN DEFAULT FALSE
+    is_guest BOOLEAN DEFAULT FALSE,
+    public_key TEXT,
+    encrypted_private_key TEXT,
+    key_salt TEXT
 );
 
 -- Posts table
@@ -185,6 +188,27 @@ CREATE TABLE IF NOT EXISTS bot_topics (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- DM conversations table
+CREATE TABLE IF NOT EXISTS dm_conversations (
+    id INTEGER PRIMARY KEY,
+    user1_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user2_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ensure_user1_less CHECK (user1_id < user2_id),
+    CONSTRAINT unique_dm_pair UNIQUE (user1_id, user2_id)
+);
+
+-- DM messages table
+CREATE TABLE IF NOT EXISTS dm_messages (
+    id INTEGER PRIMARY KEY,
+    conversation_id INTEGER NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ciphertext TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Visitor logs table
 CREATE TABLE IF NOT EXISTS visitor_logs (
     id INTEGER PRIMARY KEY,
@@ -236,6 +260,11 @@ CREATE INDEX IF NOT EXISTS idx_bot_topics_created_at ON bot_topics(created_at DE
 CREATE INDEX IF NOT EXISTS idx_bot_topics_username_created ON bot_topics(bot_username, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_visitor_logs_visited_at ON visitor_logs(visited_at);
 CREATE INDEX IF NOT EXISTS idx_visitor_logs_ip_address ON visitor_logs(ip_address);
+CREATE INDEX IF NOT EXISTS idx_dm_conversations_user1 ON dm_conversations(user1_id);
+CREATE INDEX IF NOT EXISTS idx_dm_conversations_user2 ON dm_conversations(user2_id);
+CREATE INDEX IF NOT EXISTS idx_dm_conversations_updated ON dm_conversations(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_conversation ON dm_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_created ON dm_messages(created_at);
 
 -- Default data
 INSERT INTO chatrooms (name, is_global)

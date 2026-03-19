@@ -34,6 +34,8 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (response.ok) {
+            const userId = data.user ? data.user.id : null;
+            await initializeCryptoKeys(password, userId).catch(e => console.warn('Crypto init failed:', e));
             window.location.href = '/';
         } else {
             // Show rate limit info if rate limited
@@ -80,6 +82,8 @@ async function handleRegister(e) {
         const data = await response.json();
 
         if (response.ok) {
+            const userId = data.user ? data.user.id : null;
+            await initializeCryptoKeys(password, userId).catch(e => console.warn('Crypto init failed:', e));
             window.location.href = '/';
         } else {
             // Show rate limit info if rate limited
