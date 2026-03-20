@@ -7,7 +7,8 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { initDatabase, query } = require('./db');
+const { initDatabase, query, sqliteDb } = require('./db');
+const { startBackupScheduler } = require('./services/backupService');
 const { MEDIA_DIR } = require('./media');
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
@@ -302,6 +303,9 @@ const startServer = async () => {
 
     // Start bot service
     await botService.start();
+
+    // Start weekly DB backup scheduler (SQLite + S3 only)
+    if (sqliteDb) startBackupScheduler(sqliteDb);
 
     server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);

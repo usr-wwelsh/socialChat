@@ -161,4 +161,4 @@ const initDatabase = async () => {
   }
 };
 
-module.exports = { query, pool, initDatabase };
+module.exports = { query, pool, sqliteDb: isPostgres ? null : sqliteDb, initDatabase };
