@@ -159,6 +159,8 @@ function showGuestPrompt() {
         `;
         // Insert at the top of content-wrapper (inside the feed column)
         insertTarget.insertBefore(banner, insertTarget.firstChild);
+        // Push content down so banner doesn't overlap
+        insertTarget.style.paddingTop = '70px';
     }
 }
 
@@ -207,6 +209,32 @@ function setupNavigation() {
     if (mobileProfile && !isGuest) {
         mobileProfile.addEventListener('click', profileClickHandler);
     }
+
+    const mobileChatBtn = document.getElementById('mobileChatBtn');
+    const mobileChatClose = document.getElementById('mobileChatClose');
+    const chatSection = document.getElementById('chatSection');
+
+    const openMobileChat = (e) => {
+        if (e) e.preventDefault();
+        if (!chatSection) return;
+        chatSection.classList.add('mobile-open');
+        chatSection.classList.remove('minimized');
+        mobileChatBtn && mobileChatBtn.classList.add('active');
+        // Scroll to latest message after display kicks in
+        requestAnimationFrame(() => {
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+    };
+
+    const closeMobileChat = () => {
+        if (!chatSection) return;
+        chatSection.classList.remove('mobile-open');
+        mobileChatBtn && mobileChatBtn.classList.remove('active');
+    };
+
+    if (mobileChatBtn) mobileChatBtn.addEventListener('click', openMobileChat);
+    if (mobileChatClose) mobileChatClose.addEventListener('click', closeMobileChat);
 }
 
 async function handleLogout() {

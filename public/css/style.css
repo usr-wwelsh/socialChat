@@ -1160,12 +1160,24 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     padding: 2rem 1rem;
     display: grid;
     grid-template-columns: 1fr 250px;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+        "header  friends"
+        "posts   friends";
     gap: 2rem;
     align-items: start;
 }
 
-.profile-main {
-    min-width: 0;
+.profile-container > .profile-header {
+    grid-area: header;
+}
+
+.profile-container > .friends-panel {
+    grid-area: friends;
+}
+
+.profile-container > .profile-posts {
+    grid-area: posts;
 }
 
 @media (min-width: 769px) and (max-width: 1199px) {
@@ -1184,6 +1196,69 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 @media (max-width: 900px) {
     .profile-container {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "friends"
+            "posts";
+    }
+
+    /* Horizontal avatar strip on mobile */
+    .friends-panel {
+        position: static !important;
+        max-height: none;
+        background: none;
+        border: none;
+        padding: 0.5rem 0;
+        overflow: visible;
+    }
+
+    .friends-panel-title {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .friends-panel-list {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 0.75rem;
+        overflow-x: auto;
+        padding: 0.5rem 0;
+        scrollbar-width: none;
+    }
+
+    .friends-panel-list::-webkit-scrollbar {
+        display: none;
+    }
+
+    .friend-panel-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        flex-shrink: 0;
+        width: 60px;
+        border: none !important;
+        padding: 0 !important;
+        background: none !important;
+        transform: none !important;
+    }
+
+    .friend-panel-item .drag-handle {
+        display: none;
+    }
+
+    .friend-panel-avatar {
+        width: 52px !important;
+        height: 52px !important;
+        border-radius: 50% !important;
+    }
+
+    .friend-panel-info {
+        display: none;
     }
 }
 
@@ -1520,11 +1595,50 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .btn-minimize, .btn-expand {
+        display: none;
+    }
+
     .chat-section {
+        display: none;
+    }
+
+    .chat-section.mobile-open {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
         width: 100%;
+        max-height: 100%;
         right: 0;
+        bottom: 0;
+        z-index: 400;
         border-radius: 0;
     }
+
+    .chat-section.mobile-open .chat-messages {
+        flex: 1;
+        max-height: none;
+    }
+
+    .mobile-chat-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.3rem;
+        cursor: pointer;
+        padding: 0.3rem 0.6rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-chat-close {
+        display: none;
+    }
+}
 
     .profile-header {
         flex-direction: column;
@@ -1608,6 +1722,10 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
     .mobile-bottom-nav {
         display: flex;
+    }
+
+    .search-bar-container {
+        display: none;
     }
 }
 
@@ -1814,12 +1932,21 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 /* Guest Banner */
 .guest-banner {
     background: #8A2855;
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    margin: 0 auto 1.5rem;
-    max-width: 1200px;
+    padding: 1rem 2rem;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(138, 40, 85, 0.4);
+    position: fixed;
+    top: 0;
+    left: 220px;
+    right: calc(280px + 1rem);
+    z-index: 100;
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+    .guest-banner { left: 60px; right: 0; }
+}
+
+@media (max-width: 768px) {
+    .guest-banner { left: 0; right: 0; }
 }
 
 .guest-banner p {
