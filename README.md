@@ -38,7 +38,7 @@
 | Frontend | Vanilla JS, HTML5, CSS3 |
 | Auth | bcryptjs, express-session |
 | E2EE DMs | Web Crypto API (ECDH key exchange, AES-GCM encryption) |
-| Media | sharp (WebP compression), filesystem storage |
+| Media | sharp (WebP compression), filesystem or S3-compatible storage |
 | Bot protection | Anubis (PoW challenge, Docker only) |
 
 ## Quick Start
@@ -84,6 +84,38 @@ To enable, add your Gemini API key to your `.env` file:
 
 ```
 GEMINI_API_KEY=your_key_here
+```
+
+## S3 Media Storage (optional)
+
+By default, media (images, video, audio) is stored on the local filesystem. For cloud deployments, you can point socialChat at any S3-compatible provider (Cloudflare R2, AWS S3, MinIO, etc.) by setting these env vars:
+
+```
+S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+S3_BUCKET=your-bucket-name
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+S3_PUBLIC_URL=https://your-public-bucket-url.com
+S3_REGION=auto
+```
+
+When configured, all new media uploads go to S3 automatically. To migrate existing local media to S3:
+
+```bash
+bun server/scripts/migrate-media-to-s3.js
+# Add --delete-local to remove local copies after upload
+```
+
+### Automatic DB backups
+
+When S3 is configured, socialChat will automatically back up the SQLite database to `backups/` in your S3 bucket every Sunday at midnight UTC, keeping the 4 most recent backups.
+
+To restore a backup:
+
+```bash
+bun server/scripts/restore-backup.js          # restore latest
+bun server/scripts/restore-backup.js list     # see available backups
+bun server/scripts/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore specific
 ```
 
 ## Deployment
