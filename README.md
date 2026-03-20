@@ -39,7 +39,6 @@
 | Auth | bcryptjs, express-session |
 | E2EE DMs | Web Crypto API (ECDH key exchange, AES-GCM encryption) |
 | Media | sharp (WebP compression), filesystem or S3-compatible storage |
-| Bot protection | Anubis (PoW challenge, Docker only) |
 
 ## Quick Start
 
@@ -128,26 +127,14 @@ bun server/scripts/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore sp
 
 ### Docker
 
-The included Dockerfile bundles [Anubis](https://github.com/TecharoHQ/anubis) — a proof-of-work bot challenge layer — as a reverse proxy in front of the app. When running via Docker, all public traffic passes through Anubis before reaching socialChat:
-
-- **Scanner paths** (WordPress, PHP admin panels, dotfiles, `.sql`/`.bak` files) are hard-denied with a 403
-- **Known good bots** (search crawlers, social preview scrapers) are allowed through without a challenge
-- **AI scrapers** are blocked via Anubis's built-in aggressive AI block list
-- **Browsers** complete a lightweight proof-of-work challenge; difficulty scales with suspicion score
-- Socket.io and health check endpoints bypass Anubis entirely
-
-Anubis runs on the public port; the app stays on internal port 3000. The policy is fully configurable in `anubis-policy.yaml`.
-
 ```bash
 docker build -t socialchat .
-docker run -p 8080:8080 socialchat
+docker run -p 3000:3000 socialchat
 ```
-
-Set `DIFFICULTY` (default `4`) to tune PoW difficulty, and `ANUBIS_REAL_IP_HEADER` if running behind a load balancer.
 
 ### Self-hosted
 
-Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at port 3000 and you're live. A Dockerfile is included for container deployments with Anubis bot protection (see above).
+Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at port 3000 and you're live.
 
 ## Android Client
 
