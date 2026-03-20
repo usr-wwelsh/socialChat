@@ -71,15 +71,13 @@ function initializeChat() {
 
     setupChatUI();
 
-    // Start minimized on mobile
-    if (window.innerWidth <= 768) {
-        const chatSection = document.getElementById('chatSection');
-        const minimizeBtn = document.getElementById('minimizeChatBtn');
-        if (chatSection && !chatSection.classList.contains('minimized')) {
-            chatSection.classList.add('minimized');
-            if (minimizeBtn) {
-                minimizeBtn.textContent = '➕';
-            }
+    // Start minimized by default
+    const chatSection = document.getElementById('chatSection');
+    const minimizeBtn = document.getElementById('minimizeChatBtn');
+    if (chatSection && !chatSection.classList.contains('minimized')) {
+        chatSection.classList.add('minimized');
+        if (minimizeBtn) {
+            minimizeBtn.textContent = '➕';
         }
     }
 }

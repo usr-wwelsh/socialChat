@@ -8,21 +8,29 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="nav-logo">
-                <a href="/" class="logo-main">1socialChat</a>
-                <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
-            </h1>
-            <div class="nav-user">
-                <span id="navUsername"></span>
-                <a href="/">📰 Feed</a>
-                <a href="#" id="viewProfile">My Profile</a>
-                <a href="/friends.html" class="active">👥 Friends</a>
-                <a href="/moderation.html" id="moderationLink" style="display: none;">🛡️ Moderation</a>
-                <button id="logoutBtn" class="btn-secondary">Logout</button>
-            </div>
+    <!-- Left Navigation Sidebar -->
+    <aside class="nav-sidebar" id="navSidebar">
+        <div class="nav-sidebar-logo">
+            <a href="/" class="logo-main">1socialChat</a>
+            <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
         </div>
+        <nav class="nav-sidebar-links">
+            <a href="/" class="nav-link"><span class="nav-icon">🏠</span> <span class="nav-label">Home</span></a>
+            <a href="#" id="viewProfile" class="nav-link"><span class="nav-icon">👤</span> <span class="nav-label">Profile</span></a>
+            <a href="/friends.html" class="nav-link active"><span class="nav-icon">👥</span> <span class="nav-label">Friends</span></a>
+            <a href="/moderation.html" id="moderationLink" class="nav-link" style="display:none;"><span class="nav-icon">🛡️</span> <span class="nav-label">Moderation</span></a>
+        </nav>
+        <div class="nav-sidebar-user">
+            <span id="navUsername"></span>
+            <button id="logoutBtn" class="btn-secondary">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav" id="mobileNav">
+        <a href="/" class="mobile-nav-item">🏠</a>
+        <a href="#" class="mobile-nav-item" id="mobileProfile">👤</a>
+        <a href="/friends.html" class="mobile-nav-item active">👥</a>
     </nav>
 
     <div class="main-container no-sidebar">

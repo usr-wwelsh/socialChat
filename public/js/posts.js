@@ -13,11 +13,16 @@ let currentTagFilter = null;
 let isLoadingMore = false;
 let hasMorePosts = true;
 
+// Client-side cache for link previews
+const _linkPreviewFetched = new Set();
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('postsContainer')) {
         loadPosts();
         setupPostCreation();
         loadTrendingTags();
+        loadTrendingPosters();
+        initGlobalSearch();
         setupLiveFeed();
         startTimestampUpdater();
     }
@@ -402,6 +407,9 @@ async function loadPosts(tagFilter = null, append = false) {
         // Attach event listeners
         attachPostEventListeners();
 
+        // Enrich posts with link previews
+        enrichLinkPreviews();
+
         // Show/hide Load More button
         if (hasMorePosts) {
             showLoadMoreButton();
@@ -712,6 +720,217 @@ async function loadTrendingTags() {
         }
     } catch (error) {
         console.error('Load trending tags error:', error);
+    }
+}
+
+async function loadTrendingPosters() {
+    try {
+        const response = await fetch('/api/discovery/trending-posters?limit=5');
+        if (!response.ok) return;
+        const posters = await response.json();
+
+        const container = document.getElementById('trendingPosters');
+        if (!container || !posters.length) return;
+
+        container.innerHTML = `
+            <h4>Hot right now</h4>
+            ${posters.map(p => {
+                const avatarSrc = p.profile_picture
+                    ? p.profile_picture
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}&background=random`;
+                return `
+                    <a href="/profile.html?username=${encodeURIComponent(p.username)}" class="trending-poster-item">
+                        <img src="${avatarSrc}" alt="${p.username}" class="trending-poster-avatar">
+                        <span class="trending-poster-name">@${p.username}</span>
+                    </a>
+                `;
+            }).join('')}
+        `;
+    } catch (error) {
+        console.error('Load trending posters error:', error);
+    }
+}
+
+async function enrichLinkPreviews() {
+    const postCards = document.querySelectorAll('.post:not([data-previews-loaded])');
+    for (const card of postCards) {
+        card.setAttribute('data-previews-loaded', '1');
+        const contentEl = card.querySelector('.post-content');
+        if (!contentEl) continue;
+
+        // Find all external links in post content (skip YouTube — already embedded)
+        const links = [...contentEl.querySelectorAll('a.post-link')].filter(a => {
+            const href = a.href;
+            return href && !href.includes('youtube.com') && !href.includes('youtu.be');
+        });
+        if (!links.length) continue;
+
+        // Insert previews after the content element, in order
+        let insertAfter = contentEl;
+        for (const link of links) {
+            const href = link.href;
+            if (_linkPreviewFetched.has(href)) continue;
+            _linkPreviewFetched.add(href);
+
+            try {
+                const res = await fetch(`/api/discovery/link-preview?url=${encodeURIComponent(href)}`);
+                if (!res.ok) continue;
+                const preview = await res.json();
+                if (!preview.title) continue;
+
+                const card_html = `
+                    <a href="${href}" target="_blank" rel="noopener noreferrer" class="link-preview-card">
+                        ${preview.image ? `<img src="${preview.image}" alt="" class="link-preview-image" onerror="this.style.display='none'">` : ''}
+                        <div class="link-preview-body">
+                            <span class="link-preview-site">${preview.siteName || ''}</span>
+                            <span class="link-preview-title">${preview.title}</span>
+                            ${preview.description ? `<span class="link-preview-desc">${preview.description}</span>` : ''}
+                        </div>
+                    </a>
+                `;
+
+                const previewDiv = document.createElement('div');
+                previewDiv.innerHTML = card_html;
+                const cardEl = previewDiv.firstElementChild;
+                insertAfter.after(cardEl);
+                insertAfter = cardEl;
+            } catch {
+                // skip on error
+            }
+        }
+    }
+}
+
+let _searchDebounceTimer = null;
+
+function initGlobalSearch() {
+    // Desktop search bar
+    const input = document.getElementById('globalSearch');
+    const dropdown = document.getElementById('searchResults');
+    if (input && dropdown) {
+        input.addEventListener('input', () => {
+            clearTimeout(_searchDebounceTimer);
+            const q = input.value.trim();
+            if (!q) { dropdown.style.display = 'none'; return; }
+            _searchDebounceTimer = setTimeout(() => performSearch(q, dropdown), 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim() && dropdown.innerHTML) dropdown.style.display = 'block';
+        });
+    }
+
+    // Mobile search overlay
+    const mobileSearchBtn = document.getElementById('mobileSearch');
+    const overlay = document.getElementById('mobileSearchOverlay');
+    const mobileInput = document.getElementById('mobileSearchInput');
+    const mobileDropdown = document.getElementById('mobileSearchResults');
+    const closeBtn = document.getElementById('mobileSearchClose');
+
+    if (mobileSearchBtn && overlay) {
+        mobileSearchBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            overlay.classList.add('active');
+            setTimeout(() => mobileInput && mobileInput.focus(), 50);
+        });
+    }
+
+    if (closeBtn && overlay) {
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+            if (mobileInput) mobileInput.value = '';
+            if (mobileDropdown) mobileDropdown.style.display = 'none';
+        });
+    }
+
+    if (mobileInput && mobileDropdown) {
+        mobileInput.addEventListener('input', () => {
+            clearTimeout(_searchDebounceTimer);
+            const q = mobileInput.value.trim();
+            if (!q) { mobileDropdown.style.display = 'none'; return; }
+            _searchDebounceTimer = setTimeout(() => performSearch(q, mobileDropdown), 300);
+        });
+    }
+}
+
+async function performSearch(q, dropdown) {
+    if (!dropdown) dropdown = document.getElementById('searchResults');
+    if (!dropdown) return;
+
+    try {
+        const res = await fetch(`/api/discovery/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const { users = [], posts = [] } = data;
+
+        if (!users.length && !posts.length) {
+            dropdown.innerHTML = '<div class="search-no-results">No results found</div>';
+            dropdown.style.display = 'block';
+            return;
+        }
+
+        let html = '';
+
+        if (users.length) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-label">Users</div>';
+            html += users.map(u => {
+                const avatar = u.profile_picture
+                    ? u.profile_picture
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=random`;
+                return `
+                    <div class="search-result-user" data-href="/profile.html?username=${encodeURIComponent(u.username)}">
+                        <img src="${avatar}" alt="" class="search-result-avatar">
+                        <span class="search-result-name">@${u.username}</span>
+                    </div>
+                `;
+            }).join('');
+            html += '</div>';
+        }
+
+        if (posts.length) {
+            html += '<div class="search-results-section">';
+            html += '<div class="search-results-label">Posts</div>';
+            html += posts.map(p => `
+                <div class="search-result-post" data-post-id="${p.id}">
+                    <span class="search-result-snippet">${p.content.replace(/</g, '&lt;')}</span>
+                    <span class="search-result-author">@${p.username}</span>
+                </div>
+            `).join('');
+            html += '</div>';
+        }
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+
+        // Click handlers for results
+        dropdown.querySelectorAll('.search-result-user[data-href]').forEach(el => {
+            el.addEventListener('click', () => {
+                window.location.href = el.dataset.href;
+            });
+        });
+
+        dropdown.querySelectorAll('.search-result-post[data-post-id]').forEach(el => {
+            el.addEventListener('click', () => {
+                const postId = el.dataset.postId;
+                const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                if (postEl) {
+                    postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    postEl.style.outline = '2px solid var(--accent)';
+                    setTimeout(() => { postEl.style.outline = ''; }, 2000);
+                }
+                dropdown.style.display = 'none';
+            });
+        });
+    } catch (error) {
+        console.error('Search error:', error);
     }
 }
 

@@ -35,31 +35,50 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="nav-logo">
-                <span class="logo-main">1socialChat</span>
-                <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
-            </h1>
-            <div class="nav-user">
-                <span id="navUsername"></span>
-                <a href="#" id="viewProfile">My Profile</a>
-                <a href="/friends.html" id="friendsLink">👥 Friends</a>
-                <a href="/moderation.html" id="moderationLink" style="display: none;">🛡️ Moderation</a>
-                <button id="logoutBtn" class="btn-secondary">Logout</button>
-            </div>
+    <!-- Left Navigation Sidebar -->
+    <aside class="nav-sidebar" id="navSidebar">
+        <div class="nav-sidebar-logo">
+            <span class="logo-main">1socialChat</span>
+            <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
         </div>
+        <nav class="nav-sidebar-links">
+            <a href="/" class="nav-link active"><span class="nav-icon">🏠</span> <span class="nav-label">Home</span></a>
+            <a href="#" id="viewProfile" class="nav-link"><span class="nav-icon">👤</span> <span class="nav-label">Profile</span></a>
+            <a href="/friends.html" id="friendsLink" class="nav-link"><span class="nav-icon">👥</span> <span class="nav-label">Friends</span></a>
+            <a href="/moderation.html" id="moderationLink" class="nav-link" style="display:none;"><span class="nav-icon">🛡️</span> <span class="nav-label">Moderation</span></a>
+        </nav>
+        <div class="nav-sidebar-user">
+            <span id="navUsername"></span>
+            <button id="logoutBtn" class="btn-secondary">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Search Overlay -->
+    <div class="mobile-search-overlay" id="mobileSearchOverlay">
+        <div class="mobile-search-header">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="mobileSearchInput" placeholder="Search users and posts..." class="global-search-input" autocomplete="off">
+            <button class="mobile-search-close" id="mobileSearchClose">✕</button>
+        </div>
+        <div id="mobileSearchResults" class="search-results-dropdown" style="display:none;"></div>
+    </div>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav" id="mobileNav">
+        <a href="/" class="mobile-nav-item active">🏠</a>
+        <a href="#" class="mobile-nav-item" id="mobileSearch">🔍</a>
+        <a href="#" class="mobile-nav-item" id="mobileProfile">👤</a>
+        <a href="/friends.html" class="mobile-nav-item">👥</a>
     </nav>
 
     <div class="main-container">
-        <!-- Sidebar for Trending Tags -->
-        <div class="sidebar">
-            <div id="trendingTags" class="trending-tags-widget">
-                <!-- Trending tags will be loaded here -->
-            </div>
-        </div>
-
         <div class="content-wrapper">
+            <!-- Global Search Bar -->
+            <div class="search-bar-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="globalSearch" placeholder="Search users and posts..." class="global-search-input" autocomplete="off">
+                <div id="searchResults" class="search-results-dropdown" style="display:none;"></div>
+            </div>
             <!-- Create Post Section -->
             <div class="create-post-section">
                 <div class="post-input-header">
@@ -107,6 +126,13 @@
                 <div class="loading">Loading posts...</div>
             </div>
         </div>
+
+        <!-- Right Discovery Sidebar -->
+        <aside class="discovery-sidebar">
+            <h3 class="discovery-title">Discovery</h3>
+            <div id="trendingPosters" class="trending-posters-widget"></div>
+            <div id="trendingTags" class="trending-tags-widget"></div>
+        </aside>
 
         <!-- Chatroom Section -->
         <div class="chat-section" id="chatSection">

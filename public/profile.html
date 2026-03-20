@@ -8,28 +8,30 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="nav-logo">
-                <a href="/" class="logo-main">1socialChat</a>
-                <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
-            </h1>
-            <div class="nav-user">
-                <a href="/" class="btn-secondary">Back to Feed</a>
-                <button id="logoutBtn" class="btn-secondary">Logout</button>
-            </div>
+    <!-- Left Navigation Sidebar -->
+    <aside class="nav-sidebar" id="navSidebar">
+        <div class="nav-sidebar-logo">
+            <a href="/" class="logo-main">1socialChat</a>
+            <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
         </div>
+        <nav class="nav-sidebar-links">
+            <a href="/" class="nav-link"><span class="nav-icon">🏠</span> <span class="nav-label">Home</span></a>
+            <a href="#" id="viewProfile" class="nav-link active"><span class="nav-icon">👤</span> <span class="nav-label">Profile</span></a>
+            <a href="/friends.html" class="nav-link"><span class="nav-icon">👥</span> <span class="nav-label">Friends</span></a>
+        </nav>
+        <div class="nav-sidebar-user">
+            <button id="logoutBtn" class="btn-secondary">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav" id="mobileNav">
+        <a href="/" class="mobile-nav-item">🏠</a>
+        <a href="#" class="mobile-nav-item active">👤</a>
+        <a href="/friends.html" class="mobile-nav-item">👥</a>
     </nav>
 
     <div class="profile-container">
-        <!-- Friends Panel (Left Side) -->
-        <div class="friends-panel" id="friendsPanel">
-            <h3>Top Friends</h3>
-            <div id="friendsPanelList" class="friends-panel-list">
-                <div class="loading">Loading friends...</div>
-            </div>
-        </div>
-
         <!-- Main Profile Content -->
         <div class="profile-main">
         <div class="profile-header">
@@ -99,6 +101,14 @@
             </div>
         </div>
         </div> <!-- End profile-main -->
+
+        <!-- Friends Panel (Right Side) -->
+        <div class="friends-panel" id="friendsPanel">
+            <h3>Top Friends</h3>
+            <div id="friendsPanelList" class="friends-panel-list">
+                <div class="loading">Loading friends...</div>
+            </div>
+        </div>
     </div>
 
     <!-- Image Lightbox -->

@@ -9,14 +9,29 @@
     <link rel="stylesheet" href="/css/moderation.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">1SocialChat</div>
-        <div class="nav-links">
-            <a href="/">Feed</a>
-            <a href="/profile.html">Profile</a>
-            <a href="/moderation.html" class="active">Moderation</a>
+    <!-- Left Navigation Sidebar -->
+    <aside class="nav-sidebar" id="navSidebar">
+        <div class="nav-sidebar-logo">
+            <a href="/" class="logo-main">1socialChat</a>
+            <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
+        </div>
+        <nav class="nav-sidebar-links">
+            <a href="/" class="nav-link"><span class="nav-icon">🏠</span> <span class="nav-label">Home</span></a>
+            <a href="/profile.html" class="nav-link"><span class="nav-icon">👤</span> <span class="nav-label">Profile</span></a>
+            <a href="/friends.html" class="nav-link"><span class="nav-icon">👥</span> <span class="nav-label">Friends</span></a>
+            <a href="/moderation.html" class="nav-link active"><span class="nav-icon">🛡️</span> <span class="nav-label">Moderation</span></a>
+        </nav>
+        <div class="nav-sidebar-user">
             <button id="logoutBtn" class="btn-logout">Logout</button>
         </div>
+    </aside>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav" id="mobileNav">
+        <a href="/" class="mobile-nav-item">🏠</a>
+        <a href="/profile.html" class="mobile-nav-item">👤</a>
+        <a href="/friends.html" class="mobile-nav-item">👥</a>
+        <a href="/moderation.html" class="mobile-nav-item active">🛡️</a>
     </nav>
 
     <div class="container moderation-container">

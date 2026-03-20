@@ -21,6 +21,7 @@ const commentsRoutes = require('./routes/comments');
 const usersRoutes = require('./routes/users');
 const keysRoutes = require('./routes/keys');
 const dmsRoutes = require('./routes/dms');
+const discoveryRoutes = require('./routes/discovery');
 const chatHandler = require('./socketHandlers/chat');
 const { allowGuestSocket } = require('./middleware/auth');
 const botService = require('./services/botService');
@@ -274,6 +275,7 @@ commentsRoutes.setSocketIO(io);
 app.use('/api/comments', commentsRoutes);
 
 app.use('/api/keys', keysRoutes);
+app.use('/api/discovery', discoveryRoutes);
 
 // Set Socket.io for DMs route (for real-time delivery)
 dmsRoutes.setSocketIO(io);

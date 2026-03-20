@@ -52,7 +52,7 @@ async function checkAuth() {
             // Replace logout button with Login + Register for guests
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
-                const navUser = document.querySelector('.nav-user');
+                const navSidebarUser = document.querySelector('.nav-sidebar-user') || logoutBtn.parentNode;
                 logoutBtn.remove(); // Remove the logout button
 
                 // Add Login and Register buttons
@@ -60,14 +60,16 @@ async function checkAuth() {
                 loginBtn.href = '/login.html';
                 loginBtn.className = 'btn-secondary';
                 loginBtn.textContent = 'Login';
+                loginBtn.style.textAlign = 'center';
 
                 const registerBtn = document.createElement('a');
                 registerBtn.href = '/register.html';
                 registerBtn.className = 'btn-primary';
                 registerBtn.textContent = 'Sign Up';
+                registerBtn.style.textAlign = 'center';
 
-                navUser.appendChild(loginBtn);
-                navUser.appendChild(registerBtn);
+                navSidebarUser.appendChild(loginBtn);
+                navSidebarUser.appendChild(registerBtn);
             }
 
         } else if (data.isAuthenticated) {
@@ -141,8 +143,10 @@ async function checkAuth() {
 
 function showGuestPrompt() {
     // Add a banner for guests to login/register
+    const contentWrapper = document.querySelector('.content-wrapper');
     const mainContainer = document.querySelector('.main-container');
-    if (mainContainer && !document.getElementById('guestBanner')) {
+    const insertTarget = contentWrapper || mainContainer;
+    if (insertTarget && !document.getElementById('guestBanner')) {
         const banner = document.createElement('div');
         banner.id = 'guestBanner';
         banner.className = 'guest-banner';
@@ -153,8 +157,8 @@ function showGuestPrompt() {
                 <a href="/login.html" class="guest-btn-secondary">Login</a>
             </div>
         `;
-        // Insert BEFORE the main container, not inside it
-        mainContainer.parentNode.insertBefore(banner, mainContainer);
+        // Insert at the top of content-wrapper (inside the feed column)
+        insertTarget.insertBefore(banner, insertTarget.firstChild);
     }
 }
 
@@ -177,24 +181,31 @@ async function checkAdminStatus() {
 function setupNavigation() {
     const logoutBtn = document.getElementById('logoutBtn');
     const viewProfile = document.getElementById('viewProfile');
+    const mobileProfile = document.getElementById('mobileProfile');
 
     if (logoutBtn) {
         if (isGuest) {
-            // For guests, clicking "Login" redirects to login page
             logoutBtn.addEventListener('click', () => {
                 window.location.href = '/login.html';
             });
         } else {
-            // For authenticated users, logout normally
             logoutBtn.addEventListener('click', handleLogout);
         }
     }
 
-    if (viewProfile && !isGuest) {
-        viewProfile.addEventListener('click', (e) => {
-            e.preventDefault();
+    const profileClickHandler = (e) => {
+        e.preventDefault();
+        if (currentUser) {
             window.location.href = `/profile.html?username=${currentUser.username}`;
-        });
+        }
+    };
+
+    if (viewProfile && !isGuest) {
+        viewProfile.addEventListener('click', profileClickHandler);
+    }
+
+    if (mobileProfile && !isGuest) {
+        mobileProfile.addEventListener('click', profileClickHandler);
     }
 }
 
