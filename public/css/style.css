@@ -275,7 +275,7 @@ a:hover {
 
 /* Discovery Sidebar */
 .discovery-sidebar {
-    display: none;
+    display: block;
     position: sticky;
     top: 1rem;
     height: fit-content;
@@ -570,7 +570,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     margin-left: 220px;
     padding: 1rem;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 280px;
     gap: 1rem;
     min-height: 100vh;
 }
@@ -1655,20 +1655,14 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 /* Phase 0 Features: Visibility, Audio, Tags */
 
 /* Responsive Layout Breakpoints */
-@media (min-width: 1200px) {
-    .main-container {
-        grid-template-columns: 1fr 280px;
-    }
-
-    .discovery-sidebar {
-        display: block;
-    }
-}
-
-@media (min-width: 769px) and (max-width: 1199px) {
+@media (min-width: 769px) and (max-width: 1023px) {
     .main-container {
         margin-left: 60px;
         grid-template-columns: 1fr;
+    }
+
+    .discovery-sidebar {
+        display: none;
     }
 
     .nav-sidebar {
@@ -1725,6 +1719,10 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     }
 
     .search-bar-container {
+        display: none;
+    }
+
+    .discovery-sidebar {
         display: none;
     }
 }
@@ -1941,7 +1939,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     z-index: 100;
 }
 
-@media (min-width: 769px) and (max-width: 1199px) {
+@media (min-width: 769px) and (max-width: 1023px) {
     .guest-banner { left: 60px; right: 0; }
 }
 
