@@ -263,4 +263,21 @@ router.post('/bot/trigger', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Schedule a burst of bot posts staggered over 24 hours (admin only)
+router.post('/bot/burst', requireAuth, requireAdmin, async (req, res) => {
+  if (!botService.enabled) {
+    return res.status(400).json({ error: 'Bot service is not enabled' });
+  }
+
+  const count = Math.min(parseInt(req.body.count || '10'), 20); // cap at 20
+
+  try {
+    const scheduled = await botService.scheduleBurstPosts(count);
+    res.json({ message: `${scheduled.length} posts scheduled over 24 hours`, scheduled });
+  } catch (error) {
+    console.error('Bot burst error:', error);
+    res.status(500).json({ error: error.message || 'Failed to schedule burst' });
+  }
+});
+
 module.exports = router;

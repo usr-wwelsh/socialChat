@@ -418,6 +418,39 @@ document.getElementById('triggerBotBtn')?.addEventListener('click', async () => 
     }
 });
 
+// Burst bot posts over 24 hours
+document.getElementById('burstBotBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('burstBotBtn');
+    const status = document.getElementById('botTriggerStatus');
+
+    btn.disabled = true;
+    btn.textContent = 'Scheduling...';
+    status.textContent = '';
+    status.className = 'bot-trigger-status';
+
+    try {
+        const response = await fetch('/api/moderation/bot/burst', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ count: 10 })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            status.textContent = `✓ ${data.scheduled.length} posts fired!`;
+            status.classList.add('success');
+        } else {
+            status.textContent = `✗ ${data.error}`;
+            status.classList.add('error');
+        }
+    } catch (error) {
+        status.textContent = '✗ Request failed';
+        status.classList.add('error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Burst 10x (24h)';
+    }
+});
+
 // Initialize
 (async () => {
     if (await checkAuth()) {

@@ -391,6 +391,27 @@
     min-width: 220px;
 }
 
+.btn-burst {
+    background: rgba(180, 0, 255, 0.15);
+    color: #cc44ff;
+    border: 1px solid #cc44ff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.btn-burst:hover {
+    background: rgba(180, 0, 255, 0.28);
+    box-shadow: 0 0 10px rgba(180, 0, 255, 0.4);
+}
+
+.btn-burst:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .bot-trigger-status {
     font-size: 0.95em;
     font-weight: bold;
