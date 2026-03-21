@@ -1708,6 +1708,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     .main-container {
         margin-left: 0;
         padding-bottom: 4rem;
+        grid-template-columns: 1fr;
     }
 
     .nav-sidebar {
