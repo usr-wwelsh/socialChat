@@ -437,13 +437,16 @@ async function refreshUnreadBadge() {
 
 function updateDmBadge() {
     const badge = document.getElementById('dmUnreadBadge');
-    if (!badge) return;
-    if (dmUnreadCount > 0) {
-        badge.style.display = 'inline';
-        badge.textContent = dmUnreadCount;
-    } else {
-        badge.style.display = 'none';
-    }
+    const navBadge = document.getElementById('dmUnreadBadgeNav');
+    [badge, navBadge].forEach(el => {
+        if (!el) return;
+        if (dmUnreadCount > 0) {
+            el.style.display = 'inline';
+            el.textContent = dmUnreadCount;
+        } else {
+            el.style.display = 'none';
+        }
+    });
 }
 
 // --- Socket event handlers (called from chat.js after socket connects) ---

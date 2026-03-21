@@ -94,7 +94,6 @@ function setupChatUI() {
     const sendMessageBtn = document.getElementById('sendMessageBtn');
     const chatroomSelect = document.getElementById('chatroomSelect');
     const createChatroomBtn = document.getElementById('createChatroomBtn');
-    const expandChatBtn = document.getElementById('expandChatBtn');
     const minimizeChatBtn = document.getElementById('minimizeChatBtn');
 
     sendMessageBtn.addEventListener('click', handleSend);
@@ -120,8 +119,15 @@ function setupChatUI() {
 
     createChatroomBtn.addEventListener('click', createChatroom);
 
-    expandChatBtn.addEventListener('click', toggleChatExpansion);
-    minimizeChatBtn.addEventListener('click', toggleChatMinimize);
+    minimizeChatBtn.addEventListener('click', closeChatPanel);
+
+    const chatNavLink = document.getElementById('chatNavLink');
+    if (chatNavLink) {
+        chatNavLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleChatPanel();
+        });
+    }
 }
 
 async function loadChatrooms() {
@@ -371,33 +377,28 @@ async function createChatroom() {
     }
 }
 
-function toggleChatExpansion() {
+function toggleChatPanel() {
     const chatSection = document.getElementById('chatSection');
+    const chatNavLink = document.getElementById('chatNavLink');
+    const isOpen = chatSection.classList.contains('chat-open');
 
-    // Remove minimized if it's minimized
-    if (chatSection.classList.contains('minimized')) {
-        chatSection.classList.remove('minimized');
+    if (isOpen) {
+        chatSection.classList.remove('chat-open');
+        document.body.classList.remove('chat-open');
+        chatNavLink && chatNavLink.classList.remove('active');
+    } else {
+        chatSection.classList.add('chat-open');
+        document.body.classList.add('chat-open');
+        chatNavLink && chatNavLink.classList.add('active');
     }
-
-    chatSection.classList.toggle('expanded');
-
-    const expandBtn = document.getElementById('expandChatBtn');
-    expandBtn.textContent = chatSection.classList.contains('expanded') ? '⬇️' : '⬆️';
 }
 
-function toggleChatMinimize() {
+function closeChatPanel() {
     const chatSection = document.getElementById('chatSection');
-    const minimizeBtn = document.getElementById('minimizeChatBtn');
-
-    chatSection.classList.toggle('minimized');
-
-    // Remove expanded class if minimizing
-    if (chatSection.classList.contains('minimized')) {
-        chatSection.classList.remove('expanded');
-        minimizeBtn.textContent = '➕';
-    } else {
-        minimizeBtn.textContent = '➖';
-    }
+    chatSection.classList.remove('chat-open');
+    document.body.classList.remove('chat-open');
+    const chatNavLink = document.getElementById('chatNavLink');
+    chatNavLink && chatNavLink.classList.remove('active');
 }
 
 function escapeHtml(text) {
