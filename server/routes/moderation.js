@@ -3,6 +3,8 @@ const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
 const botService = require('../services/botService');
+const uploadMiddleware = require('../middleware/upload');
+const { deleteMedia } = require('../media');
 
 const router = express.Router();
 
@@ -226,10 +228,54 @@ router.get('/users', requireAdmin, async (req, res) => {
 
 // ===== BOT CONTROLS =====
 
-// Get list of bot usernames (admin only)
-router.get('/bot/list', requireAuth, requireAdmin, (req, res) => {
-  const bots = botService.getBotConfigs().map(b => ({ username: b.username, style: b.style }));
+// Get list of bots with profile pictures (admin only)
+router.get('/bot/list', requireAuth, requireAdmin, async (req, res) => {
+  const configs = botService.getBotConfigs();
+  const usernames = configs.map(b => b.username);
+
+  const placeholders = usernames.map((_, i) => `$${i + 1}`).join(', ');
+  const result = await query(
+    `SELECT username, profile_picture FROM users WHERE username IN (${placeholders}) AND is_bot = TRUE`,
+    usernames
+  );
+  const picMap = Object.fromEntries(result.rows.map(r => [r.username, r.profile_picture]));
+
+  const bots = configs.map(b => ({
+    username: b.username,
+    style: b.style,
+    profile_picture: picMap[b.username] || null
+  }));
   res.json({ bots });
+});
+
+// Update a bot's profile picture (admin only)
+router.post('/bot/:username/picture', requireAuth, requireAdmin, uploadMiddleware, async (req, res) => {
+  const { username } = req.params;
+
+  if (!req.mediaUrl) {
+    return res.status(400).json({ error: 'No image uploaded' });
+  }
+
+  try {
+    const botResult = await query(
+      'SELECT id, profile_picture FROM users WHERE username = $1 AND is_bot = TRUE',
+      [username]
+    );
+    if (botResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    if (botResult.rows[0].profile_picture) {
+      deleteMedia(botResult.rows[0].profile_picture);
+    }
+
+    await query('UPDATE users SET profile_picture = $1 WHERE id = $2', [req.mediaUrl, botResult.rows[0].id]);
+
+    res.json({ profile_picture: req.mediaUrl });
+  } catch (error) {
+    console.error('Bot picture update error:', error);
+    res.status(500).json({ error: 'Failed to update profile picture' });
+  }
 });
 
 // Force an immediate bot post (admin only)

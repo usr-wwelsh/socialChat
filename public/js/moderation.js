@@ -364,20 +364,85 @@ document.getElementById('refreshUsersBtn')?.addEventListener('click', () => {
 });
 
 
-// Load bot list into dropdown
+// Load bot list into dropdown and avatar grid
 async function loadBotList() {
     try {
         const response = await fetch('/api/moderation/bot/list');
         if (!response.ok) return;
         const data = await response.json();
+
+        // Populate dropdown
         const select = document.getElementById('botSelect');
-        // Clear existing options except the random one
         select.innerHTML = '<option value="">— random —</option>';
         data.bots.forEach(bot => {
             const opt = document.createElement('option');
             opt.value = bot.username;
             opt.textContent = `${bot.username} (${bot.style})`;
             select.appendChild(opt);
+        });
+
+        // Render avatar grid
+        const grid = document.getElementById('botAvatarGrid');
+        grid.innerHTML = '';
+        data.bots.forEach(bot => {
+            const card = document.createElement('div');
+            card.className = 'bot-avatar-card';
+
+            const imgSrc = bot.profile_picture || '';
+            card.innerHTML = `
+                <div class="bot-avatar-wrap">
+                    <img class="bot-avatar-img" src="${imgSrc}" alt="${bot.username}" ${imgSrc ? '' : 'style="display:none"'}>
+                    <div class="bot-avatar-placeholder" style="${imgSrc ? 'display:none' : ''}">
+                        ${bot.username.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div class="bot-avatar-overlay">📷</div>
+                </div>
+                <span class="bot-avatar-name">${bot.username}</span>
+                <input type="file" class="bot-avatar-input" accept="image/*" style="display:none">
+                <span class="bot-avatar-status"></span>
+            `;
+
+            const wrap = card.querySelector('.bot-avatar-wrap');
+            const input = card.querySelector('.bot-avatar-input');
+            const status = card.querySelector('.bot-avatar-status');
+
+            wrap.addEventListener('click', () => input.click());
+
+            input.addEventListener('change', async () => {
+                const file = input.files[0];
+                if (!file) return;
+                status.textContent = '…';
+                status.className = 'bot-avatar-status';
+
+                const formData = new FormData();
+                formData.append('avatar', file);
+
+                try {
+                    const res = await fetch(`/api/moderation/bot/${bot.username}/picture`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await res.json();
+                    if (res.ok) {
+                        const img = card.querySelector('.bot-avatar-img');
+                        const placeholder = card.querySelector('.bot-avatar-placeholder');
+                        img.src = result.profile_picture;
+                        img.style.display = '';
+                        placeholder.style.display = 'none';
+                        status.textContent = '✓';
+                        status.classList.add('success');
+                    } else {
+                        status.textContent = '✗';
+                        status.classList.add('error');
+                    }
+                } catch {
+                    status.textContent = '✗';
+                    status.classList.add('error');
+                }
+                setTimeout(() => { status.textContent = ''; status.className = 'bot-avatar-status'; }, 2000);
+            });
+
+            grid.appendChild(card);
         });
     } catch (error) {
         console.error('Load bot list error:', error);
