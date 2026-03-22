@@ -66,7 +66,7 @@ function initializeChat() {
 
     socket.on('error', (data) => {
         console.error('Socket error:', data.message);
-        alert(data.message);
+        showToast(data.message, 'error');
     });
 
     setupChatUI();
@@ -76,9 +76,6 @@ function initializeChat() {
     const minimizeBtn = document.getElementById('minimizeChatBtn');
     if (chatSection && !chatSection.classList.contains('minimized')) {
         chatSection.classList.add('minimized');
-        if (minimizeBtn) {
-            minimizeBtn.textContent = '➕';
-        }
     }
 }
 
@@ -308,14 +305,14 @@ async function reportMessage(messageId, userId) {
         });
 
         if (response.ok) {
-            alert('Message reported successfully. Moderators will review your report.');
+            showToast('Message reported. Moderators will review your report.', 'success');
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to report message');
+            showToast(data.error || 'Failed to report message', 'error');
         }
     } catch (error) {
         console.error('Report message error:', error);
-        alert('Failed to report message');
+        showToast('Failed to report message', 'error');
     }
 }
 
@@ -349,7 +346,7 @@ function scrollToBottom() {
 async function createChatroom() {
     // Guests can't create chatrooms
     if (typeof isGuest !== 'undefined' && isGuest) {
-        alert('Please login or register to create chatrooms');
+        showToast('Please login or register to create chatrooms', 'warning');
         return;
     }
 
@@ -369,11 +366,11 @@ async function createChatroom() {
             await loadChatrooms();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to create chatroom');
+            showToast(data.error || 'Failed to create chatroom', 'error');
         }
     } catch (error) {
         console.error('Create chatroom error:', error);
-        alert('Failed to create chatroom');
+        showToast('Failed to create chatroom', 'error');
     }
 }
 

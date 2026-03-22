@@ -257,7 +257,7 @@ async function sendDmMessage() {
     }
 
     if (!currentDmSharedKey) {
-        alert('Cannot send message: encryption key not available. Ensure your friend has logged in at least once since the encryption feature was added.');
+        showToast('Cannot send message: encryption key not available. Ensure your friend has logged in at least once since the encryption feature was added.', 'error');
         return;
     }
 
@@ -288,11 +288,11 @@ async function sendDmMessage() {
             }
         } else {
             const data = await res.json();
-            alert(data.error || 'Failed to send message');
+            showToast(data.error || 'Failed to send message', 'error');
         }
     } catch (err) {
         console.error('Send DM error:', err);
-        alert('Failed to send message');
+        showToast('Failed to send message', 'error');
     }
 }
 
@@ -384,7 +384,7 @@ async function _openOrCreateDm(partnerId) {
             });
             if (!createRes.ok) {
                 const err = await createRes.json();
-                alert(err.error || 'Failed to open DM');
+                showToast(err.error || 'Failed to open DM', 'error');
                 return;
             }
             const createData = await createRes.json();
@@ -401,7 +401,7 @@ async function _openOrCreateDm(partnerId) {
         }
     } catch (err) {
         console.error('Open DM error:', err);
-        alert('Failed to open DM');
+        showToast('Failed to open DM', 'error');
     }
 }
 

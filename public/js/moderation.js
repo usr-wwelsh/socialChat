@@ -11,7 +11,7 @@ async function checkAuth() {
 
         // Check if user is actually an admin
         if (!data.user?.isAdmin) {
-            alert('Access denied. This page requires admin privileges.');
+            showToast('Access denied. This page requires admin privileges.', 'error');
             window.location.href = '/';
             return false;
         }
@@ -40,7 +40,7 @@ async function loadStats() {
         const response = await fetch('/api/moderation/stats');
 
         if (response.status === 403) {
-            alert('Access denied. Admin privileges required.');
+            showToast('Access denied. Admin privileges required.', 'error');
             window.location.href = '/';
             return;
         }
@@ -153,12 +153,12 @@ async function updateReportStatus(reportId, status) {
             throw new Error('Failed to update report');
         }
 
-        alert('Report updated successfully');
+        showToast('Report updated successfully', 'success');
         loadReports(document.getElementById('reportStatusFilter').value);
         loadStats();
     } catch (error) {
         console.error('Update report error:', error);
-        alert('Failed to update report');
+        showToast('Failed to update report', 'error');
     }
 }
 
@@ -177,13 +177,13 @@ async function banUser(userId, username) {
             throw new Error('Failed to ban user');
         }
 
-        alert(`${username} has been banned and all their content removed`);
+        showToast(`${username} has been banned and all their content removed`, 'success');
         loadReports(document.getElementById('reportStatusFilter').value);
         loadUsers();
         loadStats();
     } catch (error) {
         console.error('Ban user error:', error);
-        alert('Failed to ban user');
+        showToast('Failed to ban user', 'error');
     }
 }
 
@@ -202,12 +202,12 @@ async function unbanUser(userId, username) {
             throw new Error('Failed to unban user');
         }
 
-        alert(`${username} has been unbanned`);
+        showToast(`${username} has been unbanned`, 'success');
         loadUsers();
         loadStats();
     } catch (error) {
         console.error('Unban user error:', error);
-        alert('Failed to unban user');
+        showToast('Failed to unban user', 'error');
     }
 }
 
@@ -226,12 +226,12 @@ async function deletePost(postId) {
             throw new Error('Failed to delete post');
         }
 
-        alert('Post deleted successfully');
+        showToast('Post deleted successfully', 'success');
         loadReports(document.getElementById('reportStatusFilter').value);
         loadStats();
     } catch (error) {
         console.error('Delete post error:', error);
-        alert('Failed to delete post');
+        showToast('Failed to delete post', 'error');
     }
 }
 
@@ -250,12 +250,12 @@ async function deleteMessage(messageId) {
             throw new Error('Failed to delete message');
         }
 
-        alert('Message deleted successfully');
+        showToast('Message deleted successfully', 'success');
         loadReports(document.getElementById('reportStatusFilter').value);
         loadStats();
     } catch (error) {
         console.error('Delete message error:', error);
-        alert('Failed to delete message');
+        showToast('Failed to delete message', 'error');
     }
 }
 

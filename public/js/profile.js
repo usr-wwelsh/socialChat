@@ -32,7 +32,7 @@ async function loadProfile() {
     const username = urlParams.get('username');
 
     if (!username) {
-        alert('No username provided');
+        showToast('No username provided', 'warning');
         window.location.href = '/';
         return;
     }
@@ -41,7 +41,7 @@ async function loadProfile() {
         const response = await fetch(`/api/profiles/${username}`);
 
         if (!response.ok) {
-            alert('User not found');
+            showToast('User not found', 'error');
             window.location.href = '/';
             return;
         }
@@ -52,7 +52,7 @@ async function loadProfile() {
         displayProfile(data.user, data.posts);
     } catch (error) {
         console.error('Load profile error:', error);
-        alert('Failed to load profile');
+        showToast('Failed to load profile', 'error');
     }
 }
 
@@ -397,7 +397,7 @@ async function messageFriend(userId) {
             });
             if (!createRes.ok) {
                 const err = await createRes.json();
-                alert(err.error || 'Failed to open DM');
+                showToast(err.error || 'Failed to open DM', 'error');
                 return;
             }
             convId = (await createRes.json()).conversation.id;
@@ -405,7 +405,7 @@ async function messageFriend(userId) {
         window.location.href = `/?dm=${convId}`;
     } catch (err) {
         console.error('Message friend error:', err);
-        alert('Failed to open DM');
+        showToast('Failed to open DM', 'error');
     }
 }
 
@@ -423,11 +423,11 @@ async function sendFriendRequest(userId) {
             await loadFriendshipStatus(userId);
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to send friend request');
+            showToast(data.error || 'Failed to send friend request', 'error');
         }
     } catch (error) {
         console.error('Send friend request error:', error);
-        alert('Failed to send friend request');
+        showToast('Failed to send friend request', 'error');
     }
 }
 
@@ -441,11 +441,11 @@ async function acceptFriendRequest(friendshipId) {
             await loadFriendshipStatus(profileUser.id);
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to accept friend request');
+            showToast(data.error || 'Failed to accept friend request', 'error');
         }
     } catch (error) {
         console.error('Accept friend request error:', error);
-        alert('Failed to accept friend request');
+        showToast('Failed to accept friend request', 'error');
     }
 }
 
@@ -459,11 +459,11 @@ async function rejectFriendRequest(friendshipId) {
             await loadFriendshipStatus(profileUser.id);
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to reject friend request');
+            showToast(data.error || 'Failed to reject friend request', 'error');
         }
     } catch (error) {
         console.error('Reject friend request error:', error);
-        alert('Failed to reject friend request');
+        showToast('Failed to reject friend request', 'error');
     }
 }
 
@@ -479,11 +479,11 @@ async function cancelFriendRequest(friendshipId) {
             await loadFriendshipStatus(profileUser.id);
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to cancel friend request');
+            showToast(data.error || 'Failed to cancel friend request', 'error');
         }
     } catch (error) {
         console.error('Cancel friend request error:', error);
-        alert('Failed to cancel friend request');
+        showToast('Failed to cancel friend request', 'error');
     }
 }
 
@@ -499,11 +499,11 @@ async function unfriend(friendshipId) {
             await loadFriendshipStatus(profileUser.id);
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to unfriend');
+            showToast(data.error || 'Failed to unfriend', 'error');
         }
     } catch (error) {
         console.error('Unfriend error:', error);
-        alert('Failed to unfriend');
+        showToast('Failed to unfriend', 'error');
     }
 }
 
@@ -702,10 +702,10 @@ document.getElementById('downloadDataBtn')?.addEventListener('click', async () =
 
         button.disabled = false;
         button.textContent = '📊 Download My Data';
-        alert('Data exported successfully!');
+        showToast('Data exported successfully!', 'success');
     } catch (error) {
         console.error('Export data error:', error);
-        alert('Failed to export data. Please try again.');
+        showToast('Failed to export data. Please try again.', 'error');
         const button = document.getElementById('downloadDataBtn');
         button.disabled = false;
         button.textContent = '📊 Download My Data';

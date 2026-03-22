@@ -16,6 +16,28 @@ let hasMorePosts = true;
 // Client-side cache for link previews
 const _linkPreviewFetched = new Set();
 
+function renderSkeletonPosts(count = 3) {
+    const skeletonPost = `
+        <div class="skeleton-post">
+            <div class="skeleton-header">
+                <div class="skeleton-avatar-block"></div>
+                <div class="skeleton-meta">
+                    <div class="skeleton-line skeleton-name"></div>
+                    <div class="skeleton-line skeleton-time"></div>
+                </div>
+            </div>
+            <div class="skeleton-line skeleton-body-line"></div>
+            <div class="skeleton-line skeleton-body-line"></div>
+            <div class="skeleton-line skeleton-body-line short"></div>
+            <div class="skeleton-footer-row">
+                <div class="skeleton-line skeleton-btn"></div>
+                <div class="skeleton-line skeleton-btn"></div>
+                <div class="skeleton-line skeleton-btn"></div>
+            </div>
+        </div>`;
+    return Array(count).fill(skeletonPost).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('postsContainer')) {
         loadPosts();
@@ -173,7 +195,7 @@ function handleImageUpload(e) {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-        alert('Image must be less than 10MB');
+        showToast('Image must be less than 10MB', 'warning');
         e.target.value = '';
         return;
     }
@@ -200,7 +222,7 @@ function handleVideoUpload(e) {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-        alert('Video must be less than 10MB');
+        showToast('Video must be less than 10MB', 'warning');
         e.target.value = '';
         return;
     }
@@ -227,7 +249,7 @@ function handleAudioUpload(e) {
     if (!file) return;
 
     if (file.size > 20 * 1024 * 1024) {
-        alert('Audio must be less than 20MB');
+        showToast('Audio must be less than 20MB', 'warning');
         e.target.value = '';
         return;
     }
@@ -235,7 +257,7 @@ function handleAudioUpload(e) {
     // Get audio format from file extension
     const format = file.name.split('.').pop().toLowerCase();
     if (!['mp3', 'wav', 'ogg', 'flac', 'm4a'].includes(format)) {
-        alert('Unsupported audio format. Please use MP3, WAV, OGG, FLAC, or M4A');
+        showToast('Unsupported audio format. Please use MP3, WAV, OGG, FLAC, or M4A', 'warning');
         e.target.value = '';
         return;
     }
@@ -292,7 +314,7 @@ async function createPost() {
     const visibility = document.getElementById('postVisibility')?.value || 'public';
 
     if (!content && !currentMediaFile) {
-        alert('Please add some content or media');
+        showToast('Please add some content or media', 'warning');
         return;
     }
 
@@ -320,7 +342,7 @@ async function createPost() {
 
         if (!response.ok) {
             const data = await response.json();
-            alert(data.error || 'Failed to create post');
+            showToast(data.error || 'Failed to create post', 'error');
             return;
         }
 
@@ -338,12 +360,16 @@ async function createPost() {
         await loadTrendingTags();
     } catch (error) {
         console.error('Create post error:', error);
-        alert('Failed to create post');
+        showToast('Failed to create post', 'error');
     }
 }
 
 async function loadPosts(tagFilter = null, append = false) {
     const postsContainer = document.getElementById('postsContainer');
+
+    if (!append) {
+        postsContainer.innerHTML = renderSkeletonPosts(4);
+    }
 
     try {
         let url = '/api/posts?limit=20'; // Optimized for fast loading
@@ -1011,11 +1037,11 @@ async function handleEditPost(e) {
             await loadTrendingTags();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to edit post');
+            showToast(data.error || 'Failed to edit post', 'error');
         }
     } catch (error) {
         console.error('Edit post error:', error);
-        alert('Failed to edit post');
+        showToast('Failed to edit post', 'error');
     }
 }
 
@@ -1034,11 +1060,11 @@ async function handleDeletePost(e) {
             await loadTrendingTags();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to delete post');
+            showToast(data.error || 'Failed to delete post', 'error');
         }
     } catch (error) {
         console.error('Delete post error:', error);
-        alert('Failed to delete post');
+        showToast('Failed to delete post', 'error');
     }
 }
 
@@ -1064,14 +1090,14 @@ async function handleReportPost(e) {
         });
 
         if (response.ok) {
-            alert('Post reported successfully. Moderators will review your report.');
+            showToast('Post reported. Moderators will review your report.', 'success');
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to report post');
+            showToast(data.error || 'Failed to report post', 'error');
         }
     } catch (error) {
         console.error('Report post error:', error);
-        alert('Failed to report post');
+        showToast('Failed to report post', 'error');
     }
 }
 
@@ -1201,11 +1227,11 @@ async function handleDeleteComment(e) {
                 commentsList.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
             }
         } else {
-            alert('Failed to delete comment');
+            showToast('Failed to delete comment', 'error');
         }
     } catch (error) {
         console.error('Delete comment error:', error);
-        alert('Failed to delete comment');
+        showToast('Failed to delete comment', 'error');
     }
 }
 
@@ -1215,7 +1241,7 @@ async function submitComment(e) {
     const textarea = commentsSection.querySelector('.comment-input');
     const content = textarea.value.trim();
     if (!content) {
-        alert('Please enter a comment');
+        showToast('Please enter a comment', 'warning');
         return;
     }
     try {
@@ -1236,11 +1262,11 @@ async function submitComment(e) {
             commentCount.textContent = currentCount + 1;
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to post comment');
+            showToast(data.error || 'Failed to post comment', 'error');
         }
     } catch (error) {
         console.error('Submit comment error:', error);
-        alert('Failed to post comment');
+        showToast('Failed to post comment', 'error');
     }
 }
 
@@ -1263,30 +1289,142 @@ function updateAllTimestamps() {
     });
 }
 
-// Image lightbox
+// Image lightbox with zoom + pan
 (function initLightbox() {
     const lightbox = document.getElementById('imageLightbox');
     const lightboxImg = document.getElementById('lightboxImg');
     const closeBtn = document.getElementById('closeLightbox');
     if (!lightbox || !lightboxImg) return;
 
+    const MIN_SCALE = 1, MAX_SCALE = 8;
+    let scale = 1, tx = 0, ty = 0;
+    let isDragging = false, hasDragged = false;
+    let dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
+    let lastPinchDist = null;
+
+    function applyTransform() {
+        lightboxImg.style.transform = `scale(${scale}) translate(${tx}px, ${ty}px)`;
+        lightboxImg.classList.toggle('lb-zoomed', scale > 1);
+        lightboxImg.classList.toggle('lb-dragging', isDragging);
+    }
+
+    function resetZoom() {
+        scale = 1; tx = 0; ty = 0;
+        applyTransform();
+    }
+
+    // Open lightbox
     document.addEventListener('click', function(e) {
         const img = e.target.closest('img[data-lightbox]');
         if (!img) return;
-        // Skip placeholder SVGs (not yet loaded)
         if (!img.src || img.src.startsWith('data:image/svg+xml')) return;
         lightboxImg.src = img.src;
         lightbox.classList.add('active');
+        resetZoom();
     });
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         lightboxImg.src = '';
+        resetZoom();
     }
 
+    // Scroll wheel zoom — zooms toward cursor position
+    lightbox.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const rect = lightboxImg.getBoundingClientRect();
+        const imgCenterX = rect.left + rect.width / 2;
+        const imgCenterY = rect.top + rect.height / 2;
+
+        const prevScale = scale;
+        const delta = e.deltaY < 0 ? 1.12 : 0.9;
+        scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * delta));
+
+        if (scale > 1) {
+            // Shift translate so we zoom toward the cursor
+            const cursorTx = (e.clientX - imgCenterX) / prevScale;
+            const cursorTy = (e.clientY - imgCenterY) / prevScale;
+            tx += cursorTx * (1 - scale / prevScale);
+            ty += cursorTy * (1 - scale / prevScale);
+        } else {
+            tx = 0; ty = 0;
+        }
+        applyTransform();
+    }, { passive: false });
+
+    // Double-click to reset zoom
+    lightboxImg.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        if (scale > 1) {
+            resetZoom();
+        } else {
+            // Double-click to zoom in 2x toward click point
+            const rect = lightboxImg.getBoundingClientRect();
+            scale = 2;
+            tx = (e.clientX - (rect.left + rect.width / 2)) * -0.5;
+            ty = (e.clientY - (rect.top + rect.height / 2)) * -0.5;
+            applyTransform();
+        }
+    });
+
+    // Mouse drag to pan
+    lightboxImg.addEventListener('mousedown', function(e) {
+        if (scale <= 1) return;
+        e.preventDefault();
+        isDragging = true;
+        hasDragged = false;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragStartTx = tx;
+        dragStartTy = ty;
+        applyTransform();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const dx = (e.clientX - dragStartX) / scale;
+        const dy = (e.clientY - dragStartY) / scale;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDragged = true;
+        tx = dragStartTx + dx;
+        ty = dragStartTy + dy;
+        applyTransform();
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        applyTransform();
+    });
+
+    // Touch pinch-to-zoom
+    lightbox.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            lastPinchDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    }, { passive: true });
+
+    lightbox.addEventListener('touchmove', function(e) {
+        if (e.touches.length !== 2 || !lastPinchDist) return;
+        e.preventDefault();
+        const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * (dist / lastPinchDist)));
+        if (scale === MIN_SCALE) { tx = 0; ty = 0; }
+        lastPinchDist = dist;
+        applyTransform();
+    }, { passive: false });
+
+    lightbox.addEventListener('touchend', function() { lastPinchDist = null; });
+
+    // Close handlers
     closeBtn.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', function(e) {
-        if (e.target === lightbox) closeLightbox();
+        if (e.target === lightbox && !hasDragged) closeLightbox();
+        hasDragged = false;
     });
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeLightbox();

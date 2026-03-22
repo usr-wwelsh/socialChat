@@ -89,7 +89,7 @@ async function performSearch() {
     const query = searchInput.value.trim();
 
     if (!query) {
-        alert('Please enter a username to search');
+        showToast('Please enter a username to search', 'warning');
         return;
     }
 
@@ -350,7 +350,7 @@ async function openDmFromFriendsPage(friendId) {
             });
             if (!createRes.ok) {
                 const err = await createRes.json();
-                alert(err.error || 'Failed to open DM');
+                showToast(err.error || 'Failed to open DM', 'error');
                 return;
             }
             const createData = await createRes.json();
@@ -360,7 +360,7 @@ async function openDmFromFriendsPage(friendId) {
         window.location.href = `/?dm=${convId}`;
     } catch (err) {
         console.error('Open DM from friends page error:', err);
-        alert('Failed to open DM');
+        showToast('Failed to open DM', 'error');
     }
 }
 
@@ -382,16 +382,16 @@ async function sendFriendRequest(userId) {
         });
 
         if (response.ok) {
-            alert('Friend request sent!');
+            showToast('Friend request sent!', 'success');
             performSearch(); // Refresh search results
             loadSentRequests(); // Refresh sent requests
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to send friend request');
+            showToast(data.error || 'Failed to send friend request', 'error');
         }
     } catch (error) {
         console.error('Send friend request error:', error);
-        alert('Failed to send friend request');
+        showToast('Failed to send friend request', 'error');
     }
 }
 
@@ -402,16 +402,16 @@ async function acceptFriendRequest(friendshipId) {
         });
 
         if (response.ok) {
-            alert('Friend request accepted!');
+            showToast('Friend request accepted!', 'success');
             loadFriends();
             loadFriendRequests();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to accept request');
+            showToast(data.error || 'Failed to accept request', 'error');
         }
     } catch (error) {
         console.error('Accept request error:', error);
-        alert('Failed to accept request');
+        showToast('Failed to accept request', 'error');
     }
 }
 
@@ -422,15 +422,15 @@ async function rejectFriendRequest(friendshipId) {
         });
 
         if (response.ok) {
-            alert('Friend request rejected');
+            showToast('Friend request rejected', 'info');
             loadFriendRequests();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to reject request');
+            showToast(data.error || 'Failed to reject request', 'error');
         }
     } catch (error) {
         console.error('Reject request error:', error);
-        alert('Failed to reject request');
+        showToast('Failed to reject request', 'error');
     }
 }
 
@@ -441,15 +441,15 @@ async function removeFriend(friendshipId) {
         });
 
         if (response.ok) {
-            alert('Friend removed');
+            showToast('Friend removed', 'info');
             loadFriends();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to remove friend');
+            showToast(data.error || 'Failed to remove friend', 'error');
         }
     } catch (error) {
         console.error('Remove friend error:', error);
-        alert('Failed to remove friend');
+        showToast('Failed to remove friend', 'error');
     }
 }
 
@@ -460,15 +460,15 @@ async function cancelFriendRequest(friendshipId) {
         });
 
         if (response.ok) {
-            alert('Request cancelled');
+            showToast('Request cancelled', 'info');
             loadSentRequests();
         } else {
             const data = await response.json();
-            alert(data.error || 'Failed to cancel request');
+            showToast(data.error || 'Failed to cancel request', 'error');
         }
     } catch (error) {
         console.error('Cancel request error:', error);
-        alert('Failed to cancel request');
+        showToast('Failed to cancel request', 'error');
     }
 }
 
