@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const dns = require('dns').promises;
 const { query } = require('../db');
 
 // 20 link preview fetches per IP per minute
@@ -110,6 +111,14 @@ router.get('/link-preview', linkPreviewLimiter, async (req, res) => {
         return res.json(cached.data);
     }
 
+    // Quick DNS sanity check — catches hallucinated/non-existent domains before we open an HTTP connection
+    const hostname = new URL(urlStr).hostname;
+    try {
+        await dns.lookup(hostname);
+    } catch {
+        return res.status(422).json({ error: 'Could not resolve host' });
+    }
+
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
@@ -149,8 +158,6 @@ router.get('/link-preview', linkPreviewLimiter, async (req, res) => {
 
         const image = getOg('image') || null;
         const siteName = getOg('site_name') || null;
-
-        const hostname = new URL(urlStr).hostname;
 
         const preview = {
             title: title ? title.trim().substring(0, 200) : null,
