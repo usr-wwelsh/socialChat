@@ -64,6 +64,12 @@ if (isPostgres) {
 
 // Run additive SQLite migrations for existing databases
 function runSqliteMigrations() {
+  // Add is_pinned to posts if missing
+  const postCols = sqliteDb.prepare("PRAGMA table_info(posts)").all().map(c => c.name);
+  if (!postCols.includes('is_pinned')) {
+    sqliteDb.run('ALTER TABLE posts ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE');
+  }
+
   // Add crypto columns to users if missing
   const userCols = sqliteDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
   if (!userCols.includes('public_key')) {
@@ -145,6 +151,7 @@ const initDatabase = async () => {
       ['migrations/backfill_bot_hashtags.sql', 'Bot hashtags backfilled successfully'],
       ['migrations/add_visitor_analytics.sql', 'Visitor analytics tracking migrated successfully'],
       ['migrations/add_encrypted_dms.sql', 'Encrypted DMs migrated successfully'],
+      ['migrations/add_pinned_posts.sql', 'Pinned posts migrated successfully'],
     ];
 
     for (const [relPath, successMsg] of migrations) {

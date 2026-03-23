@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS posts (
     audio_title VARCHAR(255),
     deleted_by_mod BOOLEAN DEFAULT FALSE,
     mod_delete_reason TEXT,
-    genre VARCHAR(50)
+    genre VARCHAR(50),
+    is_pinned BOOLEAN DEFAULT FALSE
 );
 
 -- Chatrooms table

@@ -559,16 +559,26 @@ function renderPost(post) {
     let actionsMenuHtml = '';
     if (!isGuestUser) {
         if (isOwner) {
+            const pinBtn = isAdmin
+                ? (post.is_pinned
+                    ? `<button class="btn-unpin-post" data-post-id="${post.id}">📌 Unpin</button>`
+                    : `<button class="btn-pin-post" data-post-id="${post.id}">📌 Pin</button>`)
+                : '';
             actionsMenuHtml = `
                 <div class="post-actions-menu">
+                    ${pinBtn}
                     <button class="btn-edit-post" data-post-id="${post.id}">Edit</button>
                     <button class="btn-delete-post" data-post-id="${post.id}">Delete</button>
                 </div>
             `;
         } else if (isAdmin) {
-            // Admins can delete any post
+            // Admins can delete or pin any post
+            const pinBtn = post.is_pinned
+                ? `<button class="btn-unpin-post" data-post-id="${post.id}">📌 Unpin</button>`
+                : `<button class="btn-pin-post" data-post-id="${post.id}">📌 Pin</button>`;
             actionsMenuHtml = `
                 <div class="post-actions-menu">
+                    ${pinBtn}
                     <button class="btn-delete-post" data-post-id="${post.id}">🛡️ Delete</button>
                     <button class="btn-report-post" data-post-id="${post.id}" data-user-id="${post.user_id}">🚩 Report</button>
                 </div>
@@ -582,8 +592,13 @@ function renderPost(post) {
         }
     }
 
+    const pinnedBannerHtml = post.is_pinned
+        ? `<div class="pinned-banner">📌 Pinned post</div>`
+        : '';
+
     return `
-        <div class="post" data-post-id="${post.id}">
+        <div class="post${post.is_pinned ? ' post-pinned' : ''}" data-post-id="${post.id}">
+            ${pinnedBannerHtml}
             <div class="post-header">
                 <img src="${avatarUrl}" alt="${post.username}" class="post-avatar">
                 <div class="post-user-info">
@@ -971,6 +986,14 @@ function attachPostEventListeners() {
         btn.addEventListener('click', handleDeletePost);
     });
 
+    // Pin/unpin post buttons (admin only)
+    document.querySelectorAll('.btn-pin-post').forEach(btn => {
+        btn.addEventListener('click', handlePinPost);
+    });
+    document.querySelectorAll('.btn-unpin-post').forEach(btn => {
+        btn.addEventListener('click', handleUnpinPost);
+    });
+
     // Report post buttons
     document.querySelectorAll('.btn-report-post').forEach(btn => {
         btn.addEventListener('click', handleReportPost);
@@ -1065,6 +1088,40 @@ async function handleDeletePost(e) {
     } catch (error) {
         console.error('Delete post error:', error);
         showToast('Failed to delete post', 'error');
+    }
+}
+
+async function handlePinPost(e) {
+    const postId = e.target.dataset.postId;
+
+    try {
+        const response = await fetch(`/api/moderation/posts/${postId}/pin`, { method: 'POST' });
+        if (response.ok) {
+            await loadPosts();
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to pin post', 'error');
+        }
+    } catch (error) {
+        console.error('Pin post error:', error);
+        showToast('Failed to pin post', 'error');
+    }
+}
+
+async function handleUnpinPost(e) {
+    const postId = e.target.dataset.postId;
+
+    try {
+        const response = await fetch(`/api/moderation/posts/${postId}/pin`, { method: 'DELETE' });
+        if (response.ok) {
+            await loadPosts();
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to unpin post', 'error');
+        }
+    } catch (error) {
+        console.error('Unpin post error:', error);
+        showToast('Failed to unpin post', 'error');
     }
 }
 

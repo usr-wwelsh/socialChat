@@ -141,6 +141,34 @@ router.post('/unban/:userId', requireAdmin, async (req, res) => {
 
 // ===== DELETE SPECIFIC CONTENT =====
 
+// Pin a post
+router.post('/posts/:postId/pin', requireAdmin, async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    // Unpin any currently pinned post first (only one pinned at a time)
+    await query('UPDATE posts SET is_pinned = FALSE WHERE is_pinned = TRUE');
+    await query('UPDATE posts SET is_pinned = TRUE WHERE id = $1', [postId]);
+    res.json({ message: 'Post pinned' });
+  } catch (error) {
+    console.error('Pin post error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Unpin a post
+router.delete('/posts/:postId/pin', requireAdmin, async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    await query('UPDATE posts SET is_pinned = FALSE WHERE id = $1', [postId]);
+    res.json({ message: 'Post unpinned' });
+  } catch (error) {
+    console.error('Unpin post error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Delete a specific post
 router.delete('/posts/:postId', requireAdmin, async (req, res) => {
   const { postId } = req.params;

@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(
       `SELECT p.id, p.user_id, p.content, p.media_type, p.media_url, p.visibility,
-         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
+         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod, p.is_pinned,
          u.username, u.profile_picture as user_profile_picture,
          (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
          (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
              )
            )
          )
-       ORDER BY p.created_at DESC
+       ORDER BY p.is_pinned DESC, p.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset, userId || null]
     );
