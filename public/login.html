@@ -35,10 +35,23 @@
             <p class="auth-link">
                 Don't have an account? <a href="/register.html">Register here</a>
             </p>
+
+            <div class="about-toggle">
+                <button class="about-toggle-btn" id="aboutToggleBtn">What is this site?</button>
+                <div class="about-blurb" id="aboutBlurb">
+                    <p>This is a self-hosted community running on <strong>socialChat</strong> — an open-source social network anyone can deploy for their own community. No ads, no algorithms, no billionaires. Just people.</p>
+                    <a href="/about.html" class="about-read-more">Read more &rarr;</a>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="/js/crypto.js"></script>
     <script src="/js/auth.js"></script>
+    <script>
+        document.getElementById('aboutToggleBtn').addEventListener('click', function() {
+            document.getElementById('aboutBlurb').classList.toggle('open');
+        });
+    </script>
 </body>
 </html>

@@ -672,6 +672,136 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     color: var(--text-secondary);
 }
 
+.about-toggle {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.about-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    opacity: 0.7;
+}
+
+.about-toggle-btn:hover {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+.about-blurb {
+    display: none;
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: left;
+    line-height: 1.5;
+}
+
+.about-blurb.open {
+    display: block;
+}
+
+.about-read-more {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--accent);
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.about-read-more:hover {
+    text-decoration: underline;
+}
+
+/* About page */
+.about-page {
+    max-width: 520px;
+}
+
+.about-page h2 {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.about-page h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.about-page p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+}
+
+.about-page ul {
+    color: var(--text-secondary);
+    padding-left: 1.25rem;
+    line-height: 1.8;
+    margin-bottom: 0.75rem;
+}
+
+.about-page-logo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.about-logo-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.code-dim {
+    opacity: 0.4;
+    user-select: none;
+}
+
+.about-code-block {
+    background: var(--primary-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    margin: 0.75rem 0;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.about-github-btn {
+    display: inline-block;
+    margin-top: 1rem;
+    text-decoration: none;
+}
+
+.about-back {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.about-back a {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.about-back a:hover {
+    text-decoration: underline;
+}
+
 /* Create Post Section */
 .create-post-section {
     background: var(--secondary-bg);
