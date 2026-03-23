@@ -218,11 +218,11 @@ const globalSustainedLimiter = rateLimit({
 });
 
 // Apply BOTH global limiters to ALL routes (dual-layer infrastructure protection)
-app.use(globalBurstLimiter);
-app.use(globalSustainedLimiter);
-
-// Apply general rate limiting to all API routes
-app.use('/api/', apiLimiter);
+if (process.env.NODE_ENV === 'production') {
+  app.use(globalBurstLimiter);
+  app.use(globalSustainedLimiter);
+  app.use('/api/', apiLimiter);
+}
 
 // Protect moderation.html - redirect unauthorized users to 403
 app.get('/moderation.html', async (req, res) => {
@@ -257,7 +257,7 @@ app.use('/media', express.static(MEDIA_DIR, { maxAge: '7d', immutable: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // API Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', ...(process.env.NODE_ENV === 'production' ? [authLimiter] : []), authRoutes);
 app.use('/api/users', usersRoutes);
 
 // Set Socket.io for posts route (for live feed)

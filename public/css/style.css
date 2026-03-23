@@ -91,20 +91,15 @@ a:hover {
     gap: 0.2rem;
 }
 
-.logo-main {
-    color: var(--accent);
-    font-weight: bold;
-    font-size: 1.1rem;
-    text-decoration: none;
-    display: inline-block;
+.logo-img {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
-.logo-tagline {
-    font-size: 0.65rem;
-    color: #8A2855;
-    font-weight: 400;
-    -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.6);
-    text-shadow: 0 0 8px rgba(138, 40, 85, 0.3);
+.nav-sidebar-logo a {
+    display: block;
+    width: 100%;
 }
 
 .nav-sidebar-links {
@@ -167,7 +162,6 @@ a:hover {
 
 
 .nav-sidebar.collapsed .nav-label,
-.nav-sidebar.collapsed .logo-tagline,
 .nav-sidebar.collapsed .nav-sidebar-user span,
 .nav-sidebar.collapsed .nav-sidebar-user button {
     display: none;
@@ -178,9 +172,8 @@ a:hover {
     padding: 1rem 0.5rem;
 }
 
-.nav-sidebar.collapsed .logo-main {
-    font-size: 0.8rem;
-    text-align: center;
+.nav-sidebar.collapsed .logo-img {
+    width: 100%;
 }
 
 .nav-sidebar.collapsed .nav-link {
@@ -1690,7 +1683,6 @@ body.chat-open .main-container {
     }
 
     .nav-label,
-    .logo-tagline,
     .nav-sidebar-user span,
     .nav-sidebar-user button {
         display: none;
@@ -1701,10 +1693,8 @@ body.chat-open .main-container {
         padding: 1rem 0.5rem;
     }
 
-    .nav-sidebar-logo .logo-main {
-        font-size: 0.75rem;
-        text-align: center;
-        word-break: break-all;
+    .nav-sidebar-logo .logo-img {
+        width: 100%;
     }
 
     .nav-link {
