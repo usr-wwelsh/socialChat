@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
@@ -42,6 +43,11 @@ app.use(cookieParser());
 
 // Session configuration
 const sessionMiddleware = session({
+  store: new FileStore({
+    path: path.join(__dirname, '..', '.sessions'),
+    ttl: 60 * 60 * 24 * 7, // 1 week (in seconds)
+    retries: 0,
+  }),
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
   resave: false,
   saveUninitialized: false,
