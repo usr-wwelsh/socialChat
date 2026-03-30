@@ -18,6 +18,7 @@
 - Post text, images, video, and audio (up to 10MB, auto-compressed to WebP)
 - Post visibility controls — public, friends-only, or private
 - Edit and delete posts with soft moderation
+- Pinned posts — admins can pin a post to the top of the feed.
 - Post and comment reactions
 - Real-time global chatroom and user-created chatrooms with typing indicators
 - End-to-end encrypted direct messages — keys derived client-side via ECDH, server never sees plaintext
@@ -124,6 +125,7 @@ bun server/scripts/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore sp
 1. Push this repo to Railway
 2. Add a **Volume** service, mount path `/data`
 3. Set `SQLITE_PATH=/data/db`
+4. **Important for Session Persistence:** The application uses file-based sessions stored in the `.sessions` directory at the project root. For these sessions to persist across deployments/restarts on Railway, you'll need to ensure this directory is also mapped to a persistent volume (e.g., adding another Volume service with mount path `/app/.sessions`).
 
 ### Docker
 
