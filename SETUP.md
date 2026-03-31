@@ -75,6 +75,11 @@ PORT=3000
 SESSION_SECRET=your-random-secret-key-here
 NODE_ENV=development
 
+# Optional: Path for local media storage and session files
+# If not set, defaults to './media' and './.sessions' locally,
+# or '/app/media' and '/app/.sessions' in a container environment.
+# MEDIA_PATH=/path/to/persistent/storage
+
 # Optional: S3-Compatible Object Storage
 # S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 # S3_BUCKET=your-bucket-name
@@ -143,11 +148,11 @@ Railway has great PostgreSQL support and will handle most configuration automati
 ### 3. Add PostgreSQL Database (Optional) / Volume (for SQLite)
 
 -   **For PostgreSQL:** In your Railway project, click "New" > "Database" > "PostgreSQL". Railway will create an instance and set `DATABASE_URL`.
--   **For SQLite:** In your Railway project, click "New" > "Storage" > "Volume". Set mount path to `/data`. Then, in your app's environment variables, set `SQLITE_PATH=/data/db`.
+-   **For SQLite:** In your Railway project, click "New" > "Storage" > "Volume". Set mount path to `/data`. Then, in your app's environment variables, set `SQLITE_PATH=/data/db` and **`MEDIA_PATH=/data`** to ensure both SQLite database and session files are persistent.
 
 ### 4. Configure Environment Variables
 
-Railway will automatically set `DATABASE_URL` (for Postgres) or you set `SQLITE_PATH` (for SQLite).
+Railway will automatically set `DATABASE_URL` (for Postgres) or you set `SQLITE_PATH` and `MEDIA_PATH` (for SQLite).
 
 Add these additional variables in Railway dashboard:
 
