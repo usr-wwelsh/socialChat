@@ -53,6 +53,9 @@ Open http://localhost:3000. A SQLite database is created automatically on first 
 # Custom DB path
 SQLITE_PATH=/path/to/db bun start
 
+# Custom path for local media and session storage
+MEDIA_PATH=/path/to/storage bun start
+
 # Development with auto-reload
 bun dev
 ```
@@ -123,7 +126,7 @@ bun server/scripts/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore sp
 
 1. Push this repo to Railway
 2. Add a **Volume** service, mount path `/data`
-3. Set `SQLITE_PATH=/data/db`
+3. Set `SQLITE_PATH=/data/db` and `MEDIA_PATH=/data`
 
 ### Docker
 
