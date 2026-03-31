@@ -44,7 +44,7 @@ app.use(cookieParser());
 // Session configuration
 const sessionMiddleware = session({
   store: new FileStore({
-    path: path.join(__dirname, '..', '.sessions'),
+    path: path.join(process.env.MEDIA_PATH || path.join(__dirname, '..'), '.sessions'),
     ttl: 60 * 60 * 24 * 7, // 1 week (in seconds)
     retries: 0,
   }),
