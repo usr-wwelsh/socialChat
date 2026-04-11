@@ -113,8 +113,19 @@ function renderPost(post) {
 
     // Render media based on type
     let mediaHtml = '';
-    if (post.media_type === 'image' && post.media_url) {
-        mediaHtml = `<img src="${post.media_url}" alt="Post image" class="post-media" data-lightbox loading="lazy">`;
+    if (post.media_type === 'image') {
+        const urls = (post.media_urls && post.media_urls.length) ? post.media_urls
+                   : (post.media_url ? [post.media_url] : []);
+        if (urls.length > 1) {
+            const galleryJson = JSON.stringify(urls);
+            const tiles = urls.map((url, i) =>
+                `<div class="carousel-tile"><img src="${url}" alt="Image ${i + 1} of ${urls.length}" class="carousel-img" data-lightbox data-gallery='${galleryJson}' data-gallery-index="${i}" loading="lazy"></div>`
+            ).join('');
+            mediaHtml = `<div class="post-carousel">${tiles}</div>`;
+        } else if (urls.length === 1) {
+            const galleryJson = JSON.stringify(urls);
+            mediaHtml = `<img src="${urls[0]}" alt="Post image" class="post-media" data-lightbox data-gallery='${galleryJson}' data-gallery-index="0" loading="lazy">`;
+        }
     } else if (post.media_type === 'video' && post.media_url) {
         mediaHtml = `<video src="${post.media_url}" controls class="post-media"></video>`;
     } else if (post.media_type === 'audio' && post.media_url) {
@@ -712,31 +723,72 @@ document.getElementById('downloadDataBtn')?.addEventListener('click', async () =
     }
 });
 
-// Image lightbox
+// Image lightbox with gallery navigation
 (function initLightbox() {
     const lightbox = document.getElementById('imageLightbox');
     const lightboxImg = document.getElementById('lightboxImg');
     const closeBtn = document.getElementById('closeLightbox');
+    const prevBtn = document.getElementById('lightboxPrev');
+    const nextBtn = document.getElementById('lightboxNext');
+    const counterEl = document.getElementById('lightboxCounter');
     if (!lightbox || !lightboxImg) return;
+
+    let gallery = [], galleryIndex = 0, lbTouchStartX = 0;
+
+    function updateGalleryUI() {
+        const multi = gallery.length > 1;
+        if (prevBtn) prevBtn.classList.toggle('lb-nav-visible', multi);
+        if (nextBtn) nextBtn.classList.toggle('lb-nav-visible', multi);
+        if (counterEl) {
+            counterEl.textContent = multi ? `${galleryIndex + 1} / ${gallery.length}` : '';
+            counterEl.style.display = multi ? 'block' : 'none';
+        }
+    }
+
+    function navigateLightbox(dir) {
+        if (gallery.length <= 1) return;
+        galleryIndex = (galleryIndex + dir + gallery.length) % gallery.length;
+        lightboxImg.src = gallery[galleryIndex];
+        updateGalleryUI();
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); navigateLightbox(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); navigateLightbox(1); });
 
     document.addEventListener('click', function(e) {
         const img = e.target.closest('img[data-lightbox]');
         if (!img) return;
         if (!img.src || img.src.startsWith('data:image/svg+xml')) return;
-        lightboxImg.src = img.src;
+        try { gallery = img.dataset.gallery ? JSON.parse(img.dataset.gallery) : [img.src]; } catch { gallery = [img.src]; }
+        galleryIndex = parseInt(img.dataset.galleryIndex || '0');
+        if (galleryIndex < 0 || galleryIndex >= gallery.length) galleryIndex = 0;
+        lightboxImg.src = gallery[galleryIndex];
         lightbox.classList.add('active');
+        updateGalleryUI();
     });
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         lightboxImg.src = '';
+        gallery = []; galleryIndex = 0;
+        if (prevBtn) prevBtn.classList.remove('lb-nav-visible');
+        if (nextBtn) nextBtn.classList.remove('lb-nav-visible');
+        if (counterEl) counterEl.style.display = 'none';
     }
 
     closeBtn.addEventListener('click', closeLightbox);
-    lightbox.addEventListener('click', function(e) {
-        if (e.target === lightbox) closeLightbox();
-    });
+    lightbox.addEventListener('click', function(e) { if (e.target === lightbox) closeLightbox(); });
     document.addEventListener('keydown', function(e) {
+        if (!lightbox.classList.contains('active')) return;
         if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navigateLightbox(-1);
+        if (e.key === 'ArrowRight') navigateLightbox(1);
     });
+    lightbox.addEventListener('touchstart', (e) => { if (e.touches.length === 1) lbTouchStartX = e.touches[0].clientX; }, { passive: true });
+    lightbox.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 1 && gallery.length > 1) {
+            const dx = e.changedTouches[0].clientX - lbTouchStartX;
+            if (Math.abs(dx) > 50) navigateLightbox(dx < 0 ? 1 : -1);
+        }
+    }, { passive: true });
 }());

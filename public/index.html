@@ -89,16 +89,17 @@
                 <textarea id="postContent" placeholder="Share your thoughts, upload media, or use #hashtags..." maxlength="5000"></textarea>
 
                 <div class="post-media-preview" id="mediaPreview" style="display: none;">
+                    <div id="mediaPreviewGrid" class="media-preview-grid" style="display: none;"></div>
                     <img id="mediaPreviewImg" src="" alt="Preview" style="display: none;">
                     <video id="mediaPreviewVideo" controls style="display: none;"></video>
                     <audio id="mediaPreviewAudio" controls style="display: none;"></audio>
-                    <button class="btn-remove-media" id="removeMediaBtn">Remove</button>
+                    <button class="btn-remove-media" id="removeMediaBtn">&#x2715; Clear</button>
                 </div>
 
                 <div class="post-actions">
                     <div class="post-buttons">
-                        <label for="imageUpload" class="btn-icon" title="Upload Image">
-                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                        <label for="imageUpload" class="btn-icon" title="Upload up to 10 images">
+                            <input type="file" id="imageUpload" accept="image/*" multiple style="display: none;">
                             📷 Image
                         </label>
                         <label for="videoUpload" class="btn-icon" title="Upload Video">
@@ -206,10 +207,13 @@
     <script src="/socket.io/socket.io.js"></script>
     <!-- Image Lightbox -->
     <div id="imageLightbox" class="image-lightbox">
+        <button class="image-lightbox-close" id="closeLightbox">&times;</button>
+        <button class="lb-nav lb-prev" id="lightboxPrev">&#8249;</button>
         <div class="image-lightbox-inner">
-            <button class="image-lightbox-close" id="closeLightbox">&times;</button>
             <img id="lightboxImg" src="" alt="Image preview">
         </div>
+        <button class="lb-nav lb-next" id="lightboxNext">&#8250;</button>
+        <span class="lb-counter" id="lightboxCounter"></span>
     </div>
 
     <script src="/js/toast.js"></script>

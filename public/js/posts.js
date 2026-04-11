@@ -1,10 +1,12 @@
 // Posts feed functionality
 
-let currentMediaFile = null;
+let currentMediaFile = null;     // single file for video/audio
+let currentMediaFiles = [];      // array of File objects for images (up to 10)
 let currentMediaType = null;
 let currentAudioDuration = null;
 let currentAudioFormat = null;
-let _previewObjectUrl = null;
+let _previewObjectUrl = null;    // single object URL for video/audio preview
+let _previewObjectUrls = [];     // object URLs for image thumbnails (to revoke)
 let postsSocket = null;
 
 // Pagination state
@@ -191,30 +193,75 @@ function setupPostCreation() {
 }
 
 function handleImageUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    e.target.value = ''; // reset so same files can trigger change again
+    if (!files.length) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-        showToast('Image must be less than 10MB', 'warning');
-        e.target.value = '';
+    // Clear video/audio if switching to image
+    if (currentMediaType && currentMediaType !== 'image') clearMedia();
+
+    const remaining = 10 - currentMediaFiles.length;
+    if (remaining <= 0) {
+        showToast('Maximum 10 images per post', 'warning');
         return;
     }
 
-    currentMediaFile = file;
+    let skipped = 0;
+    for (const file of files) {
+        if (currentMediaFiles.length >= 10) { skipped++; continue; }
+        if (file.size > 10 * 1024 * 1024) {
+            showToast(`${file.name} exceeds 10MB, skipped`, 'warning');
+            skipped++;
+            continue;
+        }
+        currentMediaFiles.push(file);
+    }
+    if (skipped > 0 && files.length - skipped > 0) {
+        showToast(`Added ${files.length - skipped} image${files.length - skipped !== 1 ? 's' : ''} (${skipped} skipped)`, 'info');
+    } else if (currentMediaFiles.length > remaining && files.length > remaining) {
+        showToast(`Max 10 images per post`, 'warning');
+    }
+
+    if (currentMediaFiles.length === 0) return;
     currentMediaType = 'image';
-    if (_previewObjectUrl) URL.revokeObjectURL(_previewObjectUrl);
-    _previewObjectUrl = URL.createObjectURL(file);
+    currentMediaFile = null;
+    renderImagePreviewGrid();
+}
 
-    const mediaPreview = document.getElementById('mediaPreview');
-    const mediaPreviewImg = document.getElementById('mediaPreviewImg');
-    const mediaPreviewVideo = document.getElementById('mediaPreviewVideo');
-    const mediaPreviewAudio = document.getElementById('mediaPreviewAudio');
+function renderImagePreviewGrid() {
+    // Revoke old preview URLs
+    for (const u of _previewObjectUrls) URL.revokeObjectURL(u);
+    _previewObjectUrls = [];
 
-    mediaPreviewImg.src = _previewObjectUrl;
-    mediaPreviewImg.style.display = 'block';
-    mediaPreviewVideo.style.display = 'none';
-    if (mediaPreviewAudio) mediaPreviewAudio.style.display = 'none';
-    mediaPreview.style.display = 'block';
+    const grid = document.getElementById('mediaPreviewGrid');
+    const singleImg = document.getElementById('mediaPreviewImg');
+    const video = document.getElementById('mediaPreviewVideo');
+    const audio = document.getElementById('mediaPreviewAudio');
+    singleImg.style.display = 'none';
+    if (video) video.style.display = 'none';
+    if (audio) audio.style.display = 'none';
+
+    grid.innerHTML = '';
+    currentMediaFiles.forEach((file, i) => {
+        const url = URL.createObjectURL(file);
+        _previewObjectUrls.push(url);
+        const thumb = document.createElement('div');
+        thumb.className = 'media-preview-thumb';
+        thumb.innerHTML = `<img src="${url}" alt="Image ${i + 1}"><button class="media-preview-thumb-remove" title="Remove" type="button">&#x2715;</button>`;
+        thumb.querySelector('.media-preview-thumb-remove').addEventListener('click', () => {
+            currentMediaFiles.splice(i, 1);
+            if (currentMediaFiles.length === 0) { clearMedia(); } else { renderImagePreviewGrid(); }
+        });
+        grid.appendChild(thumb);
+    });
+
+    const countLabel = document.createElement('span');
+    countLabel.className = 'media-preview-count';
+    countLabel.textContent = `${currentMediaFiles.length}/10`;
+    grid.appendChild(countLabel);
+
+    grid.style.display = 'flex';
+    document.getElementById('mediaPreview').style.display = 'block';
 }
 
 function handleVideoUpload(e) {
@@ -290,19 +337,23 @@ function handleAudioUpload(e) {
 
 function clearMedia() {
     currentMediaFile = null;
+    currentMediaFiles = [];
     currentMediaType = null;
     currentAudioDuration = null;
     currentAudioFormat = null;
-    if (_previewObjectUrl) {
-        URL.revokeObjectURL(_previewObjectUrl);
-        _previewObjectUrl = null;
-    }
+    if (_previewObjectUrl) { URL.revokeObjectURL(_previewObjectUrl); _previewObjectUrl = null; }
+    for (const u of _previewObjectUrls) URL.revokeObjectURL(u);
+    _previewObjectUrls = [];
 
     document.getElementById('mediaPreview').style.display = 'none';
-    document.getElementById('mediaPreviewImg').src = '';
-    document.getElementById('mediaPreviewVideo').src = '';
+    const grid = document.getElementById('mediaPreviewGrid');
+    if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+    const img = document.getElementById('mediaPreviewImg');
+    img.src = ''; img.style.display = 'none';
+    const video = document.getElementById('mediaPreviewVideo');
+    video.src = ''; video.style.display = 'none';
     const audioPreview = document.getElementById('mediaPreviewAudio');
-    if (audioPreview) audioPreview.src = '';
+    if (audioPreview) { audioPreview.src = ''; audioPreview.style.display = 'none'; }
     document.getElementById('imageUpload').value = '';
     document.getElementById('videoUpload').value = '';
     const audioUpload = document.getElementById('audioUpload');
@@ -313,7 +364,7 @@ async function createPost() {
     const content = document.getElementById('postContent').value.trim();
     const visibility = document.getElementById('postVisibility')?.value || 'public';
 
-    if (!content && !currentMediaFile) {
+    if (!content && !currentMediaFile && currentMediaFiles.length === 0) {
         showToast('Please add some content or media', 'warning');
         return;
     }
@@ -323,15 +374,18 @@ async function createPost() {
         formData.append('content', content);
         formData.append('visibility', visibility);
 
-        if (currentMediaType) {
-            formData.append('media_type', currentMediaType);
-        }
-        if (currentMediaFile) {
+        if (currentMediaType === 'image' && currentMediaFiles.length > 0) {
+            formData.append('media_type', 'image');
+            for (const file of currentMediaFiles) {
+                formData.append('media', file);
+            }
+        } else if (currentMediaFile) {
+            if (currentMediaType) formData.append('media_type', currentMediaType);
             formData.append('media', currentMediaFile);
-        }
-        if (currentMediaType === 'audio') {
-            if (currentAudioDuration) formData.append('audio_duration', currentAudioDuration);
-            if (currentAudioFormat) formData.append('audio_format', currentAudioFormat);
+            if (currentMediaType === 'audio') {
+                if (currentAudioDuration) formData.append('audio_duration', currentAudioDuration);
+                if (currentAudioFormat) formData.append('audio_format', currentAudioFormat);
+            }
         }
 
         const response = await fetch('/api/posts', {
@@ -506,6 +560,16 @@ function hideLoadMoreButton() {
     }
 }
 
+function renderCarousel(urls) {
+    const galleryJson = JSON.stringify(urls);
+    const tiles = urls.map((url, i) =>
+        `<div class="carousel-tile">
+            <img src="${url}" alt="Image ${i + 1} of ${urls.length}" class="carousel-img" data-lightbox data-gallery='${galleryJson}' data-gallery-index="${i}" loading="lazy">
+        </div>`
+    ).join('');
+    return `<div class="post-carousel">${tiles}</div>`;
+}
+
 function renderPost(post) {
     const isOwner = currentUser && post.user_id === currentUser.id;
     const isAdmin = currentUser && currentUser.is_admin;
@@ -514,8 +578,15 @@ function renderPost(post) {
 
     // Render media based on type
     let mediaHtml = '';
-    if (post.media_type === 'image' && post.media_url) {
-        mediaHtml = `<img src="${post.media_url}" alt="Post image" class="post-media" data-lightbox loading="lazy">`;
+    if (post.media_type === 'image') {
+        const urls = (post.media_urls && post.media_urls.length) ? post.media_urls
+                   : (post.media_url ? [post.media_url] : []);
+        if (urls.length > 1) {
+            mediaHtml = renderCarousel(urls);
+        } else if (urls.length === 1) {
+            const galleryJson = JSON.stringify(urls);
+            mediaHtml = `<img src="${urls[0]}" alt="Post image" class="post-media" data-lightbox data-gallery='${galleryJson}' data-gallery-index="0" loading="lazy">`;
+        }
     } else if (post.media_type === 'video' && post.media_url) {
         mediaHtml = `<video src="${post.media_url}" controls class="post-media"></video>`;
     } else if (post.media_type === 'audio' && post.media_url) {
@@ -1346,11 +1417,14 @@ function updateAllTimestamps() {
     });
 }
 
-// Image lightbox with zoom + pan
+// Image lightbox with zoom + pan + gallery navigation
 (function initLightbox() {
     const lightbox = document.getElementById('imageLightbox');
     const lightboxImg = document.getElementById('lightboxImg');
     const closeBtn = document.getElementById('closeLightbox');
+    const prevBtn = document.getElementById('lightboxPrev');
+    const nextBtn = document.getElementById('lightboxNext');
+    const counterEl = document.getElementById('lightboxCounter');
     if (!lightbox || !lightboxImg) return;
 
     const MIN_SCALE = 1, MAX_SCALE = 8;
@@ -1358,6 +1432,11 @@ function updateAllTimestamps() {
     let isDragging = false, hasDragged = false;
     let dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
     let lastPinchDist = null;
+    let lbTouchStartX = 0;
+
+    // Gallery state
+    let gallery = [];
+    let galleryIndex = 0;
 
     function applyTransform() {
         lightboxImg.style.transform = `scale(${scale}) translate(${tx}px, ${ty}px)`;
@@ -1370,20 +1449,54 @@ function updateAllTimestamps() {
         applyTransform();
     }
 
+    function updateGalleryUI() {
+        const multi = gallery.length > 1;
+        if (prevBtn) prevBtn.classList.toggle('lb-nav-visible', multi);
+        if (nextBtn) nextBtn.classList.toggle('lb-nav-visible', multi);
+        if (counterEl) {
+            counterEl.textContent = multi ? `${galleryIndex + 1} / ${gallery.length}` : '';
+            counterEl.style.display = multi ? 'block' : 'none';
+        }
+    }
+
+    function navigateLightbox(dir) {
+        if (gallery.length <= 1) return;
+        galleryIndex = (galleryIndex + dir + gallery.length) % gallery.length;
+        lightboxImg.src = gallery[galleryIndex];
+        resetZoom();
+        updateGalleryUI();
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); navigateLightbox(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); navigateLightbox(1); });
+
     // Open lightbox
     document.addEventListener('click', function(e) {
         const img = e.target.closest('img[data-lightbox]');
         if (!img) return;
         if (!img.src || img.src.startsWith('data:image/svg+xml')) return;
-        lightboxImg.src = img.src;
+
+        try {
+            gallery = img.dataset.gallery ? JSON.parse(img.dataset.gallery) : [img.src];
+        } catch { gallery = [img.src]; }
+        galleryIndex = parseInt(img.dataset.galleryIndex || '0');
+        if (galleryIndex < 0 || galleryIndex >= gallery.length) galleryIndex = 0;
+
+        lightboxImg.src = gallery[galleryIndex];
         lightbox.classList.add('active');
         resetZoom();
+        updateGalleryUI();
     });
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         lightboxImg.src = '';
+        gallery = [];
+        galleryIndex = 0;
         resetZoom();
+        if (prevBtn) prevBtn.classList.remove('lb-nav-visible');
+        if (nextBtn) nextBtn.classList.remove('lb-nav-visible');
+        if (counterEl) counterEl.style.display = 'none';
     }
 
     // Scroll wheel zoom — zooms toward cursor position
@@ -1452,13 +1565,15 @@ function updateAllTimestamps() {
         applyTransform();
     });
 
-    // Touch pinch-to-zoom
+    // Touch: pinch-to-zoom + single-finger swipe to navigate gallery
     lightbox.addEventListener('touchstart', function(e) {
         if (e.touches.length === 2) {
             lastPinchDist = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
             );
+        } else if (e.touches.length === 1) {
+            lbTouchStartX = e.touches[0].clientX;
         }
     }, { passive: true });
 
@@ -1475,7 +1590,13 @@ function updateAllTimestamps() {
         applyTransform();
     }, { passive: false });
 
-    lightbox.addEventListener('touchend', function() { lastPinchDist = null; });
+    lightbox.addEventListener('touchend', function(e) {
+        lastPinchDist = null;
+        if (e.changedTouches.length === 1 && scale <= 1 && gallery.length > 1) {
+            const dx = e.changedTouches[0].clientX - lbTouchStartX;
+            if (Math.abs(dx) > 50) navigateLightbox(dx < 0 ? 1 : -1);
+        }
+    });
 
     // Close handlers
     closeBtn.addEventListener('click', closeLightbox);
@@ -1484,6 +1605,9 @@ function updateAllTimestamps() {
         hasDragged = false;
     });
     document.addEventListener('keydown', function(e) {
+        if (!lightbox.classList.contains('active')) return;
         if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navigateLightbox(-1);
+        if (e.key === 'ArrowRight') navigateLightbox(1);
     });
 }());

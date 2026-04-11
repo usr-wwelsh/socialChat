@@ -1,6 +1,8 @@
 const busboy = require('busboy');
 const { saveMediaFromBuffer } = require('../media');
 
+const MAX_FILES = 10;
+
 function uploadMiddleware(req, res, next) {
   const contentType = req.headers['content-type'] || '';
   if (!contentType.includes('multipart/form-data')) {
@@ -9,15 +11,13 @@ function uploadMiddleware(req, res, next) {
 
   let bb;
   try {
-    bb = busboy({ headers: req.headers, limits: { fileSize: 20 * 1024 * 1024 } });
+    bb = busboy({ headers: req.headers, limits: { fileSize: 20 * 1024 * 1024, files: MAX_FILES } });
   } catch (err) {
     return next();
   }
 
   const fields = {};
-  let fileBuffer = null;
-  let fileMimeType = null;
-  let fileFieldName = null;
+  const fileUploads = [];
   let limitExceeded = false;
 
   bb.on('field', (name, val) => {
@@ -25,21 +25,22 @@ function uploadMiddleware(req, res, next) {
   });
 
   bb.on('file', (name, stream, info) => {
-    fileFieldName = name;
-    fileMimeType = info.mimeType;
-    const chunks = [];
+    const fileData = { mimeType: info.mimeType, fieldName: name, limitExceeded: false, chunks: [] };
+    fileUploads.push(fileData);
 
-    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('data', (chunk) => fileData.chunks.push(chunk));
 
     stream.on('limit', () => {
+      fileData.limitExceeded = true;
       limitExceeded = true;
-      stream.resume(); // drain stream
+      stream.resume();
     });
 
     stream.on('end', () => {
-      if (!limitExceeded) {
-        fileBuffer = Buffer.concat(chunks);
+      if (!fileData.limitExceeded) {
+        fileData.buffer = Buffer.concat(fileData.chunks);
       }
+      delete fileData.chunks;
     });
   });
 
@@ -50,11 +51,17 @@ function uploadMiddleware(req, res, next) {
 
     req.body = fields;
 
-    if (fileBuffer && fileMimeType) {
+    const validFiles = fileUploads.filter(f => f.buffer && f.mimeType);
+    if (validFiles.length > 0) {
       try {
-        const prefix = fileFieldName || 'media';
-        req.mediaUrl = await saveMediaFromBuffer(fileBuffer, fileMimeType, prefix);
-        req.mediaMimeType = fileMimeType;
+        const urls = await Promise.all(
+          validFiles.map(f => saveMediaFromBuffer(f.buffer, f.mimeType, f.fieldName || 'media'))
+        );
+        // Always set req.mediaUrl to first file for backwards compat
+        req.mediaUrl = urls[0];
+        req.mediaMimeType = validFiles[0].mimeType;
+        // For multiple files, expose the full array
+        req.mediaFiles = urls.map((url, i) => ({ url, mimeType: validFiles[i].mimeType }));
       } catch (err) {
         return next(err);
       }

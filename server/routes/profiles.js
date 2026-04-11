@@ -60,9 +60,28 @@ router.get('/:username', async (req, res) => {
       [user.id]
     );
 
+    let posts = postsResult.rows;
+
+    // Batch fetch post_media (multiple images)
+    if (posts.length > 0) {
+      const postIds = posts.map(p => p.id);
+      const ph = postIds.map((_, i) => `$${i + 1}`).join(',');
+      const mediaResult = await query(
+        `SELECT post_id, media_url, position FROM post_media
+         WHERE post_id IN (${ph}) ORDER BY post_id, position ASC`,
+        postIds
+      );
+      const mediaByPost = {};
+      for (const row of mediaResult.rows) {
+        if (!mediaByPost[row.post_id]) mediaByPost[row.post_id] = [];
+        mediaByPost[row.post_id].push(row.media_url);
+      }
+      posts = posts.map(p => ({ ...p, media_urls: mediaByPost[p.id] || [] }));
+    }
+
     res.json({
       user,
-      posts: postsResult.rows
+      posts
     });
   } catch (error) {
     console.error('Get profile error:', error);

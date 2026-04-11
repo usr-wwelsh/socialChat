@@ -54,7 +54,7 @@ router.get('/:tagName/posts', async (req, res) => {
     // Step 1: Fetch posts for this tag
     const result = await query(
       `SELECT
-         p.id, p.user_id, p.content, p.media_type, p.visibility,
+         p.id, p.user_id, p.content, p.media_type, p.media_url, p.visibility,
          p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
          u.username, u.profile_picture as user_profile_picture,
          (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
@@ -107,10 +107,23 @@ router.get('/:tagName/posts', async (req, res) => {
         if (commentsByPost[comment.post_id].length < 3) commentsByPost[comment.post_id].push(comment);
       }
 
+      // Batch fetch post_media (multiple images)
+      const mediaResult = await query(
+        `SELECT post_id, media_url, position FROM post_media
+         WHERE post_id IN (${ph}) ORDER BY post_id, position ASC`,
+        postIds
+      );
+      const mediaByPost = {};
+      for (const row of mediaResult.rows) {
+        if (!mediaByPost[row.post_id]) mediaByPost[row.post_id] = [];
+        mediaByPost[row.post_id].push(row.media_url);
+      }
+
       posts = posts.map(post => ({
         ...post,
         tags: tagsByPost[post.id] || [],
-        preview_comments: commentsByPost[post.id] || []
+        preview_comments: commentsByPost[post.id] || [],
+        media_urls: mediaByPost[post.id] || []
       }));
     }
 

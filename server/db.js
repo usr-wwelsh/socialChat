@@ -82,6 +82,17 @@ function runSqliteMigrations() {
     sqliteDb.run('ALTER TABLE users ADD COLUMN key_salt TEXT');
   }
 
+  // Create post_media table if missing
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS post_media (
+      id INTEGER PRIMARY KEY,
+      post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      media_url TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_post_media_post_id ON post_media(post_id, position);
+  `);
+
   // Create DM tables if missing
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS dm_conversations (
@@ -152,6 +163,7 @@ const initDatabase = async () => {
       ['migrations/add_visitor_analytics.sql', 'Visitor analytics tracking migrated successfully'],
       ['migrations/add_encrypted_dms.sql', 'Encrypted DMs migrated successfully'],
       ['migrations/add_pinned_posts.sql', 'Pinned posts migrated successfully'],
+      ['migrations/add_post_media.sql', 'Post media table migrated successfully'],
     ];
 
     for (const [relPath, successMsg] of migrations) {

@@ -134,10 +134,23 @@ router.get('/', async (req, res) => {
         }
       }
 
+      // Batch fetch post_media (multiple images)
+      const mediaResult = await query(
+        `SELECT post_id, media_url, position FROM post_media
+         WHERE post_id IN (${ph}) ORDER BY post_id, position ASC`,
+        postIds
+      );
+      const mediaByPost = {};
+      for (const row of mediaResult.rows) {
+        if (!mediaByPost[row.post_id]) mediaByPost[row.post_id] = [];
+        mediaByPost[row.post_id].push(row.media_url);
+      }
+
       posts = posts.map(post => ({
         ...post,
         tags: tagsByPost[post.id] || [],
-        preview_comments: commentsByPost[post.id] || []
+        preview_comments: commentsByPost[post.id] || [],
+        media_urls: mediaByPost[post.id] || []
       }));
     }
 
@@ -262,25 +275,27 @@ const parseHashtags = (content) => {
 router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req, res) => {
   const content = req.body.content || '';
   const media_type = req.body.media_type || null;
+  // For multi-image: req.mediaFiles has all; req.mediaUrl has first
   const media_url = req.mediaUrl || null;
   const visibility = req.body.visibility || 'public';
   const audio_duration = req.body.audio_duration ? parseInt(req.body.audio_duration) : null;
   const audio_format = req.body.audio_format || null;
+  const allMediaFiles = req.mediaFiles || (media_url ? [{ url: media_url }] : []);
 
   // Validation
   if (!content || content.trim().length === 0) {
-    if (media_url) deleteMedia(media_url);
+    for (const f of allMediaFiles) deleteMedia(f.url);
     return res.status(400).json({ error: 'Content is required' });
   }
 
   if (content.length > 5000) {
-    if (media_url) deleteMedia(media_url);
+    for (const f of allMediaFiles) deleteMedia(f.url);
     return res.status(400).json({ error: 'Content exceeds 5000 characters' });
   }
 
   // Validate media type
   if (media_type && !['image', 'video', 'audio'].includes(media_type)) {
-    if (media_url) deleteMedia(media_url);
+    for (const f of allMediaFiles) deleteMedia(f.url);
     return res.status(400).json({ error: 'Invalid media type. Must be "image", "video", or "audio"' });
   }
 
@@ -289,7 +304,7 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
   const postVisibility = visibility && validVisibility.includes(visibility) ? visibility : 'public';
 
   try {
-    // Insert post
+    // Insert post (media_url = first image for backwards compat)
     const result = await query(
       `INSERT INTO posts (user_id, content, media_type, media_url, visibility, audio_duration, audio_format)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -298,6 +313,16 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
     );
 
     const post = result.rows[0];
+
+    // Insert all image files into post_media (enables multi-image slideshow)
+    if (media_type === 'image' && allMediaFiles.length > 0) {
+      for (let i = 0; i < allMediaFiles.length; i++) {
+        await query(
+          'INSERT INTO post_media (post_id, media_url, position) VALUES ($1, $2, $3)',
+          [post.id, allMediaFiles[i].url, i]
+        );
+      }
+    }
 
     // Parse and insert hashtags
     const hashtags = parseHashtags(content);
@@ -339,7 +364,8 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
       username: userResult.rows[0].username,
       user_profile_picture: userResult.rows[0].profile_picture,
       reaction_count: 0,
-      tags: tagsResult.rows
+      tags: tagsResult.rows,
+      media_urls: allMediaFiles.map(f => f.url)
     };
 
     // Clear feed cache since we have a new post
@@ -395,8 +421,18 @@ router.put('/:id', requireAuth, uploadMiddleware, async (req, res) => {
 
     let result;
     if (req.mediaUrl) {
-      // New media uploaded — delete old file and use new URL
-      deleteMedia(checkResult.rows[0].media_url);
+      // New media uploaded — delete old files and use new URL
+      const oldMediaRows = await query('SELECT media_url FROM post_media WHERE post_id = $1', [id]);
+      if (oldMediaRows.rows.length > 0) {
+        for (const row of oldMediaRows.rows) deleteMedia(row.media_url);
+        await query('DELETE FROM post_media WHERE post_id = $1', [id]);
+      } else {
+        deleteMedia(checkResult.rows[0].media_url);
+      }
+      // Insert new single media into post_media
+      if ((req.body.media_type || null) === 'image') {
+        await query('INSERT INTO post_media (post_id, media_url, position) VALUES ($1, $2, 0)', [id, req.mediaUrl]);
+      }
       result = await query(
         `UPDATE posts
          SET content = $1, media_type = $2, media_url = $3, updated_at = CURRENT_TIMESTAMP
@@ -460,11 +496,22 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
     const mediaUrl = checkResult.rows[0].media_url;
 
-    // Delete post (reactions will cascade)
+    // Fetch all post_media URLs before cascade-delete
+    const postMediaResult = await query(
+      'SELECT media_url FROM post_media WHERE post_id = $1',
+      [id]
+    );
+
+    // Delete post (reactions + post_media will cascade)
     await query('DELETE FROM posts WHERE id = $1', [id]);
 
-    // Delete media file after DB deletion succeeds
-    deleteMedia(mediaUrl);
+    // Delete media files after DB deletion succeeds
+    if (postMediaResult.rows.length > 0) {
+      for (const row of postMediaResult.rows) deleteMedia(row.media_url);
+    } else {
+      // Old post: no post_media rows, use media_url directly
+      deleteMedia(mediaUrl);
+    }
 
     // Clear feed cache since post was deleted
     clearFeedCache();

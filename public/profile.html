@@ -103,10 +103,13 @@
 
     <!-- Image Lightbox -->
     <div id="imageLightbox" class="image-lightbox">
+        <button class="image-lightbox-close" id="closeLightbox">&times;</button>
+        <button class="lb-nav lb-prev" id="lightboxPrev">&#8249;</button>
         <div class="image-lightbox-inner">
-            <button class="image-lightbox-close" id="closeLightbox">&times;</button>
             <img id="lightboxImg" src="" alt="Image preview">
         </div>
+        <button class="lb-nav lb-next" id="lightboxNext">&#8250;</button>
+        <span class="lb-counter" id="lightboxCounter"></span>
     </div>
 
     <script src="/js/toast.js"></script>
