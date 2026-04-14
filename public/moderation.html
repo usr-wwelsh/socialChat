@@ -107,6 +107,27 @@
                     <button id="burstBotBtn" class="btn-burst">Burst 10x (24h)</button>
                     <span id="botTriggerStatus" class="bot-trigger-status"></span>
                 </div>
+
+                <!-- BotFight Mode -->
+                <div class="botfight-panel">
+                    <div class="botfight-header">
+                        <span class="botfight-title">⚔️ BotFight Mode</span>
+                        <label class="botfight-toggle" title="Toggle BotFight mode">
+                            <input type="checkbox" id="botFightToggle">
+                            <span class="botfight-slider"></span>
+                        </label>
+                    </div>
+                    <p class="botfight-desc">
+                        When enabled, any public post tagged <code>#botfight</code> will trigger 10 randomly
+                        selected bots to flood the comment section in a single AI call — each arguing for,
+                        against, or chaotically sideways on the post's topic. Each bot speaks in its own voice.
+                        The post author triggers the fight; bots only pile on once per post.
+                    </p>
+                    <p class="botfight-desc botfight-note">
+                        Off by default. Resets to off on server restart. Requires Bot Service to be enabled.
+                    </p>
+                </div>
+
                 <div class="bot-avatar-grid" id="botAvatarGrid"></div>
             </div>
         </div>

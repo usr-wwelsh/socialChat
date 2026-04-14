@@ -343,6 +343,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             loadUsers();
         } else if (tabName === 'bots') {
             loadBotList();
+            loadBotFightStatus();
         }
     });
 });
@@ -513,6 +514,39 @@ document.getElementById('burstBotBtn')?.addEventListener('click', async () => {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Burst 10x (24h)';
+    }
+});
+
+// BotFight toggle
+async function loadBotFightStatus() {
+    try {
+        const res = await fetch('/api/moderation/bot/botfight');
+        if (!res.ok) return;
+        const { enabled } = await res.json();
+        document.getElementById('botFightToggle').checked = enabled;
+    } catch (error) {
+        console.error('Load botfight status error:', error);
+    }
+}
+
+document.getElementById('botFightToggle')?.addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    try {
+        const res = await fetch('/api/moderation/bot/botfight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            e.target.checked = !enabled; // revert
+            showToast(data.error || 'Failed to update BotFight mode', 'error');
+        } else {
+            showToast(`BotFight mode ${data.enabled ? 'enabled' : 'disabled'}`, data.enabled ? 'success' : 'info');
+        }
+    } catch {
+        e.target.checked = !enabled;
+        showToast('Request failed', 'error');
     }
 });
 

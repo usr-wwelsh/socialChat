@@ -354,4 +354,23 @@ router.post('/bot/burst', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get botfight mode status (admin only)
+router.get('/bot/botfight', requireAuth, requireAdmin, (req, res) => {
+  res.json({ enabled: botService.botFightEnabled });
+});
+
+// Toggle botfight mode (admin only)
+router.post('/bot/botfight', requireAuth, requireAdmin, (req, res) => {
+  if (!botService.enabled) {
+    return res.status(400).json({ error: 'Bot service is not enabled' });
+  }
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled must be a boolean' });
+  }
+  botService.botFightEnabled = enabled;
+  console.log(`⚔️ BotFight mode ${enabled ? 'ENABLED' : 'DISABLED'} by admin`);
+  res.json({ enabled: botService.botFightEnabled });
+});
+
 module.exports = router;

@@ -36,8 +36,12 @@ function clearFeedCache() {
 
 // Will be set by index.js
 let io = null;
+let botService = null;
 router.setSocketIO = (socketIO) => {
   io = socketIO;
+};
+router.setBotService = (bs) => {
+  botService = bs;
 };
 
 // Rate limiting for post creation
@@ -380,6 +384,12 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
       message: 'Post created successfully',
       post: postData
     });
+
+    // Fire botfight asynchronously — doesn't block the response
+    if (botService && hashtags.includes('botfight') && postVisibility === 'public') {
+      botService.triggerBotFight(post.id, content.trim(), userResult.rows[0].username)
+        .catch(err => console.error('[BotFight] Unhandled error:', err));
+    }
   } catch (error) {
     if (media_url) deleteMedia(media_url);
     console.error('Create post error:', error);

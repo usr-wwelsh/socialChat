@@ -266,8 +266,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/auth', ...(process.env.NODE_ENV === 'production' ? [authLimiter] : []), authRoutes);
 app.use('/api/users', usersRoutes);
 
-// Set Socket.io for posts route (for live feed)
+// Set Socket.io and bot service for posts route (for live feed + botfight)
 postsRoutes.setSocketIO(io);
+postsRoutes.setBotService(botService);
 app.use('/api/posts', postsRoutes); // Post creation limiter applied in routes file
 
 app.use('/api/profiles', profilesRoutes);
