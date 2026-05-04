@@ -1,4 +1,4 @@
-# 1socialChat Setup Guide
+# socialChat Setup Guide
 
 ## Prerequisites
 
