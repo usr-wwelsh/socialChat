@@ -18,10 +18,10 @@
 - Post text, images, video, and audio (up to 10MB for images/video, 20MB for audio, auto-compressed to WebP)
 - Post visibility controls — public, friends-only, or private
 - Edit and delete posts with soft moderation
-- Post and comment reactions
+- Post reactions
 - Real-time global chatroom and user-created chatrooms with typing indicators
 - End-to-end encrypted direct messages — keys derived client-side via ECDH, server never sees plaintext
-- Friend system with MySpace-style top friend ranking
+- Friend system
 - Hashtag and tagging system
 - Guest access — browse and chat without an account
 - Admin moderation dashboard — reports, bans, content removal
