@@ -42,15 +42,53 @@ function renderSkeletonPosts(count = 3) {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('postsContainer')) {
-        loadPosts();
+        const focusId = new URLSearchParams(location.search).get('post');
+        if (focusId) {
+            loadSinglePost(focusId);
+        } else {
+            loadPosts();
+            setupLiveFeed();
+        }
         setupPostCreation();
         loadTrendingTags();
         loadTrendingPosters();
         initGlobalSearch();
-        setupLiveFeed();
         startTimestampUpdater();
     }
 });
+
+// Focused single-post view (opened via /?post=<id>) — shows one post with comments expanded
+async function loadSinglePost(id) {
+    const postsContainer = document.getElementById('postsContainer');
+    postsContainer.innerHTML = renderSkeletonPosts(1);
+
+    const composer = document.querySelector('.create-post-section');
+    if (composer) composer.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/posts/${id}`);
+        if (!response.ok) {
+            postsContainer.innerHTML = '<p class="no-posts">This post is no longer available. <a href="/" class="back-to-feed">Back to feed</a></p>';
+            return;
+        }
+        const { post } = await response.json();
+        postsContainer.innerHTML =
+            `<a href="/" class="back-to-feed">&#8249; Back to feed</a>` + renderPost(post);
+        attachPostEventListeners();
+        enrichLinkPreviews();
+        hideLoadMoreButton();
+
+        // Auto-expand the comments so likes/comments are visible right away
+        const section = document.getElementById(`comments-${post.id}`);
+        if (section) {
+            section.style.display = 'block';
+            await loadComments(post.id);
+        }
+    } catch (error) {
+        console.error('Load single post error:', error);
+        postsContainer.innerHTML = '<p class="error">Failed to load post. <a href="/" class="back-to-feed">Back to feed</a></p>';
+    }
+}
 
 // Setup Socket.io for live feed updates
 function setupLiveFeed() {
@@ -360,11 +398,54 @@ function clearMedia() {
     if (audioUpload) audioUpload.value = '';
 }
 
+// Quote-post state: id of the post being quoted, or null
+let quotingPostId = null;
+
+function handleQuotePost(e) {
+    const btn = e.currentTarget;
+    const postEl = btn.closest('.post');
+    const contentEl = postEl ? postEl.querySelector('.post-content') : null;
+    const snippet = contentEl ? contentEl.textContent.trim().slice(0, 140) : '';
+    startQuote(btn.dataset.postId, btn.dataset.username, snippet);
+}
+
+function startQuote(postId, username, snippet) {
+    quotingPostId = postId;
+    const preview = document.getElementById('quotePreview');
+    if (preview) {
+        preview.innerHTML = `
+            <div class="quote-chip">
+                <div class="quote-chip-body">
+                    <span class="quote-chip-label">Quoting @${username}</span>
+                    ${snippet ? `<span class="quote-chip-snippet">${escapeHtml(snippet)}</span>` : ''}
+                </div>
+                <button type="button" class="quote-chip-remove" id="cancelQuoteBtn" title="Remove">&#x2715;</button>
+            </div>`;
+        preview.style.display = 'block';
+        const cancel = document.getElementById('cancelQuoteBtn');
+        if (cancel) cancel.addEventListener('click', cancelQuote);
+    }
+    const textarea = document.getElementById('postContent');
+    if (textarea) {
+        textarea.focus();
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function cancelQuote() {
+    quotingPostId = null;
+    const preview = document.getElementById('quotePreview');
+    if (preview) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+    }
+}
+
 async function createPost() {
     const content = document.getElementById('postContent').value.trim();
     const visibility = document.getElementById('postVisibility')?.value || 'public';
 
-    if (!content && !currentMediaFile && currentMediaFiles.length === 0) {
+    if (!content && !currentMediaFile && currentMediaFiles.length === 0 && !quotingPostId) {
         showToast('Please add some content or media', 'warning');
         return;
     }
@@ -373,6 +454,7 @@ async function createPost() {
         const formData = new FormData();
         formData.append('content', content);
         formData.append('visibility', visibility);
+        if (quotingPostId) formData.append('quoted_post_id', quotingPostId);
 
         if (currentMediaType === 'image' && currentMediaFiles.length > 0) {
             formData.append('media_type', 'image');
@@ -406,6 +488,7 @@ async function createPost() {
             document.getElementById('postVisibility').value = 'public';
         }
         clearMedia();
+        cancelQuote();
 
         // Reset pagination and reload posts (respecting current filter)
         currentOffset = 0;
@@ -570,6 +653,44 @@ function renderCarousel(urls) {
     return `<div class="post-carousel">${tiles}</div>`;
 }
 
+function renderQuotedPost(quoted) {
+    if (!quoted) return '';
+    if (quoted.redacted) {
+        return `<div class="quoted-post quoted-post-redacted">This post is no longer available.</div>`;
+    }
+    const avatarUrl = quoted.user_profile_picture || `https://ui-avatars.com/api/?name=${quoted.username}&background=random`;
+    let mediaHtml = '';
+    if (quoted.media_type === 'image') {
+        const urls = (quoted.media_urls && quoted.media_urls.length) ? quoted.media_urls
+                   : (quoted.media_url ? [quoted.media_url] : []);
+        if (urls.length > 1) {
+            mediaHtml = renderCarousel(urls);
+        } else if (urls.length === 1) {
+            const galleryJson = JSON.stringify(urls);
+            mediaHtml = `<img src="${urls[0]}" alt="" class="quoted-post-media" data-lightbox data-gallery='${galleryJson}' data-gallery-index="0" loading="lazy">`;
+        }
+    }
+    const content = linkifyUrls(linkifyHashtags(escapeHtml(quoted.content || '')));
+    return `
+        <div class="quoted-post" data-quoted-id="${quoted.id}">
+            <div class="quoted-post-header">
+                <img src="${avatarUrl}" alt="${quoted.username}" class="quoted-post-avatar">
+                <a href="/profile.html?username=${quoted.username}" class="quoted-post-username">${quoted.username}</a>
+                <span class="quoted-post-time" data-timestamp="${quoted.created_at}">${formatDate(quoted.created_at)}</span>
+            </div>
+            ${content ? `<div class="quoted-post-content">${content}</div>` : ''}
+            ${mediaHtml}
+        </div>
+    `;
+}
+
+// Clicking an embedded quoted post opens the original (unless a link or image was clicked)
+function handleQuotedPostClick(e) {
+    if (e.target.closest('a') || e.target.closest('[data-lightbox]') || e.target.closest('.carousel-img')) return;
+    const id = e.currentTarget.dataset.quotedId;
+    if (id) window.location.href = `/?post=${id}`;
+}
+
 function renderPost(post) {
     const isOwner = currentUser && post.user_id === currentUser.id;
     const isAdmin = currentUser && currentUser.is_admin;
@@ -680,7 +801,8 @@ function renderPost(post) {
                 </div>
                 ${actionsMenuHtml}
             </div>
-            <div class="post-content">${contentWithLinks}</div>
+            ${post.content && post.content.trim() ? `<div class="post-content">${contentWithLinks}</div>` : ''}
+            ${renderQuotedPost(post.quoted_post)}
             ${mediaHtml}
             ${tagsHtml}
             <div class="post-footer">
@@ -689,6 +811,9 @@ function renderPost(post) {
                 </button>
                 <button class="btn-comment" data-post-id="${post.id}" ${isGuestUser ? 'disabled title="Login to comment"' : ''}>
                     💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
+                </button>
+                <button class="btn-quote" data-post-id="${post.id}" data-username="${post.username}" ${isGuestUser ? 'disabled title="Login to quote posts"' : ''}>
+                    🔁 Quote
                 </button>
             </div>
             <div class="comments-section" id="comments-${post.id}" style="display: none;">
@@ -1078,6 +1203,16 @@ function attachPostEventListeners() {
     // Comment buttons
     document.querySelectorAll('.btn-comment').forEach(btn => {
         btn.addEventListener('click', toggleComments);
+    });
+
+    // Quote buttons
+    document.querySelectorAll('.btn-quote').forEach(btn => {
+        btn.addEventListener('click', handleQuotePost);
+    });
+
+    // Embedded quoted posts (click to open the original)
+    document.querySelectorAll('.quoted-post[data-quoted-id]').forEach(el => {
+        el.addEventListener('click', handleQuotedPostClick);
     });
 
     // Submit comment buttons

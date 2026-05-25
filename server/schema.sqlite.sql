@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS posts (
     deleted_by_mod BOOLEAN DEFAULT FALSE,
     mod_delete_reason TEXT,
     genre VARCHAR(50),
-    is_pinned BOOLEAN DEFAULT FALSE
+    is_pinned BOOLEAN DEFAULT FALSE,
+    quoted_post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL
 );
 
 -- Chatrooms table
@@ -234,6 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_visibility ON posts(visibility);
 CREATE INDEX IF NOT EXISTS idx_posts_deleted_by_mod ON posts(deleted_by_mod);
+CREATE INDEX IF NOT EXISTS idx_posts_quoted ON posts(quoted_post_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_chatroom_id ON chat_messages(chatroom_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_guest_id ON chat_messages(guest_id);

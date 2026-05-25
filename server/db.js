@@ -69,6 +69,10 @@ function runSqliteMigrations() {
   if (!postCols.includes('is_pinned')) {
     sqliteDb.run('ALTER TABLE posts ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE');
   }
+  if (!postCols.includes('quoted_post_id')) {
+    sqliteDb.run('ALTER TABLE posts ADD COLUMN quoted_post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL');
+    sqliteDb.run('CREATE INDEX IF NOT EXISTS idx_posts_quoted ON posts(quoted_post_id)');
+  }
 
   // Add crypto columns to users if missing
   const userCols = sqliteDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
@@ -164,6 +168,7 @@ const initDatabase = async () => {
       ['migrations/add_encrypted_dms.sql', 'Encrypted DMs migrated successfully'],
       ['migrations/add_pinned_posts.sql', 'Pinned posts migrated successfully'],
       ['migrations/add_post_media.sql', 'Post media table migrated successfully'],
+      ['migrations/add_quote_posts.sql', 'Quote posts migrated successfully'],
     ];
 
     for (const [relPath, successMsg] of migrations) {

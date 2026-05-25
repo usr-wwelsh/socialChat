@@ -44,6 +44,63 @@ router.setBotService = (bs) => {
   botService = bs;
 };
 
+// Fetch and attach the embedded `quoted_post` object to any post that quotes another.
+// A mod-removed, banned-author, or missing quoted post is returned as { redacted: true }
+// so the original text never leaks. (quoted_post_id is SET NULL on hard delete.)
+async function attachQuotedPosts(posts) {
+  const quotedIds = [...new Set(posts.filter(p => p.quoted_post_id).map(p => p.quoted_post_id))];
+  if (quotedIds.length === 0) {
+    return posts.map(p => ({ ...p, quoted_post: null }));
+  }
+
+  const ph = quotedIds.map((_, i) => `$${i + 1}`).join(',');
+  const qResult = await query(
+    `SELECT p.id, p.content, p.media_type, p.media_url, p.created_at, p.deleted_by_mod,
+       u.username, u.is_banned, u.profile_picture as user_profile_picture
+     FROM posts p JOIN users u ON p.user_id = u.id
+     WHERE p.id IN (${ph})`,
+    quotedIds
+  );
+
+  const mediaResult = await query(
+    `SELECT post_id, media_url FROM post_media WHERE post_id IN (${ph}) ORDER BY post_id, position ASC`,
+    quotedIds
+  );
+  const mediaByPost = {};
+  for (const m of mediaResult.rows) {
+    if (!mediaByPost[m.post_id]) mediaByPost[m.post_id] = [];
+    mediaByPost[m.post_id].push(m.media_url);
+  }
+
+  const byId = {};
+  for (const q of qResult.rows) {
+    const urls = (mediaByPost[q.id] && mediaByPost[q.id].length)
+      ? mediaByPost[q.id]
+      : (q.media_url ? [q.media_url] : []);
+    byId[q.id] = (q.deleted_by_mod || q.is_banned)
+      ? { id: q.id, redacted: true }
+      : {
+          id: q.id,
+          content: q.content,
+          username: q.username,
+          user_profile_picture: q.user_profile_picture,
+          created_at: q.created_at,
+          media_type: q.media_type,
+          media_url: urls[0] || null,
+          media_urls: urls,
+          redacted: false
+        };
+  }
+
+  return posts.map(p => ({
+    ...p,
+    quoted_post: p.quoted_post_id
+      ? (byId[p.quoted_post_id] || { id: p.quoted_post_id, redacted: true })
+      : null
+  }));
+}
+router.attachQuotedPosts = attachQuotedPosts;
+
 // Rate limiting for post creation
 const postCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -72,7 +129,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await query(
       `SELECT p.id, p.user_id, p.content, p.media_type, p.media_url, p.visibility,
-         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod, p.is_pinned,
+         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod, p.is_pinned, p.quoted_post_id,
          u.username, u.profile_picture as user_profile_picture,
          (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
          (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
@@ -158,6 +215,8 @@ router.get('/', async (req, res) => {
       }));
     }
 
+    posts = await attachQuotedPosts(posts);
+
     // Cache first page results
     if (offset === 0) {
       const cacheKey = `feed:${userId || 'public'}:${limit}`;
@@ -240,27 +299,55 @@ router.get('/:id/media', async (req, res) => {
   }
 });
 
-// Get single post by ID
+// Get single post by ID (full detail: reactions, comment count, preview comments, tags, media)
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
+  const userId = req.session?.userId;
 
   try {
     const result = await query(
       `SELECT p.id, p.user_id, p.content, p.media_type, p.media_url, p.visibility,
-         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod,
+         p.audio_duration, p.audio_format, p.created_at, p.updated_at, p.deleted_by_mod, p.is_pinned, p.quoted_post_id,
          u.username, u.profile_picture as user_profile_picture,
-         (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count
+         (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+         (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
+         (SELECT EXISTS(SELECT 1 FROM post_reactions WHERE post_id = p.id AND user_id = $2 AND reaction_type = 'like')) as is_liked
        FROM posts p
        JOIN users u ON p.user_id = u.id
        WHERE p.id = $1`,
-      [id]
+      [id, userId || null]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 || result.rows[0].deleted_by_mod) {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    res.json({ post: result.rows[0] });
+    const tagsResult = await query(
+      `SELECT t.id, t.name FROM post_tags pt JOIN tags t ON pt.tag_id = t.id WHERE pt.post_id = $1`,
+      [id]
+    );
+    const commentsResult = await query(
+      `SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, c.updated_at, c.deleted_at,
+         u.username, u.profile_picture,
+         (SELECT COUNT(*) FROM comment_reactions WHERE comment_id = c.id) as reaction_count
+       FROM comments c JOIN users u ON c.user_id = u.id
+       WHERE c.post_id = $1 AND c.deleted_at IS NULL
+       ORDER BY c.created_at ASC LIMIT 3`,
+      [id]
+    );
+    const mediaResult = await query(
+      `SELECT media_url FROM post_media WHERE post_id = $1 ORDER BY position ASC`,
+      [id]
+    );
+
+    let post = {
+      ...result.rows[0],
+      tags: tagsResult.rows,
+      preview_comments: commentsResult.rows,
+      media_urls: mediaResult.rows.map(r => r.media_url)
+    };
+    [post] = await attachQuotedPosts([post]);
+    res.json({ post });
   } catch (error) {
     console.error('Get post error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -285,9 +372,11 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
   const audio_duration = req.body.audio_duration ? parseInt(req.body.audio_duration) : null;
   const audio_format = req.body.audio_format || null;
   const allMediaFiles = req.mediaFiles || (media_url ? [{ url: media_url }] : []);
+  let quoted_post_id = parseInt(req.body.quoted_post_id);
+  if (isNaN(quoted_post_id)) quoted_post_id = null;
 
-  // Validation
-  if (!content || content.trim().length === 0) {
+  // Validation — a quote-post may have empty commentary
+  if ((!content || content.trim().length === 0) && !quoted_post_id) {
     for (const f of allMediaFiles) deleteMedia(f.url);
     return res.status(400).json({ error: 'Content is required' });
   }
@@ -308,12 +397,18 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
   const postVisibility = visibility && validVisibility.includes(visibility) ? visibility : 'public';
 
   try {
+    // Validate the quoted post exists and isn't mod-removed; drop the ref otherwise
+    if (quoted_post_id) {
+      const q = await query('SELECT id, deleted_by_mod FROM posts WHERE id = $1', [quoted_post_id]);
+      if (q.rows.length === 0 || q.rows[0].deleted_by_mod) quoted_post_id = null;
+    }
+
     // Insert post (media_url = first image for backwards compat)
     const result = await query(
-      `INSERT INTO posts (user_id, content, media_type, media_url, visibility, audio_duration, audio_format)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, user_id, content, media_type, media_url, visibility, audio_duration, audio_format, created_at, updated_at`,
-      [req.session.userId, content.trim(), media_type || null, media_url, postVisibility, audio_duration, audio_format]
+      `INSERT INTO posts (user_id, content, media_type, media_url, visibility, audio_duration, audio_format, quoted_post_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, user_id, content, media_type, media_url, visibility, audio_duration, audio_format, created_at, updated_at, quoted_post_id`,
+      [req.session.userId, content.trim(), media_type || null, media_url, postVisibility, audio_duration, audio_format, quoted_post_id]
     );
 
     const post = result.rows[0];
@@ -363,14 +458,14 @@ router.post('/', postCreationLimiter, requireAuth, uploadMiddleware, async (req,
       [post.id]
     );
 
-    const postData = {
+    const [postData] = await attachQuotedPosts([{
       ...post,
       username: userResult.rows[0].username,
       user_profile_picture: userResult.rows[0].profile_picture,
       reaction_count: 0,
       tags: tagsResult.rows,
       media_urls: allMediaFiles.map(f => f.url)
-    };
+    }]);
 
     // Clear feed cache since we have a new post
     clearFeedCache();

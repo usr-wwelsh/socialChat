@@ -3103,3 +3103,151 @@ body.chat-open .main-container {
     height: 32px;
     width: 72px;
 }
+
+/* Quote posts (embedded / quote-share) */
+.quoted-post {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--primary-bg);
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.15s ease;
+}
+
+.quoted-post[data-quoted-id] {
+    cursor: pointer;
+}
+
+.quoted-post:hover {
+    border-color: var(--accent);
+}
+
+.quoted-post .post-carousel {
+    margin-top: 0.6rem;
+}
+
+.back-to-feed {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.quoted-post-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.quoted-post-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.quoted-post-username {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.quoted-post-time {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+}
+
+.quoted-post-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.quoted-post-media {
+    max-width: 100%;
+    max-height: 280px;
+    border-radius: 8px;
+    margin-top: 0.6rem;
+    display: block;
+    object-fit: contain;
+}
+
+.quoted-post-redacted {
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-size: 0.95rem;
+    border-style: dashed;
+}
+
+.btn-quote {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.btn-quote:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-quote:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Quote-share preview chip in the composer */
+.quote-preview {
+    margin-bottom: 0.75rem;
+}
+
+.quote-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    background: var(--primary-bg);
+    padding: 0.6rem 0.8rem;
+}
+
+.quote-chip-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.quote-chip-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--accent);
+}
+
+.quote-chip-snippet {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quote-chip-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.2rem;
+}
+
+.quote-chip-remove:hover {
+    color: var(--error);
+}
