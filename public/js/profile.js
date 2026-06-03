@@ -105,6 +105,151 @@ function displayPosts(posts) {
     }
 
     postsContainer.innerHTML = posts.map(post => renderPost(post)).join('');
+    attachProfilePostListeners();
+}
+
+function attachProfilePostListeners() {
+    document.querySelectorAll('.btn-reaction').forEach(btn => btn.addEventListener('click', handleReaction));
+    document.querySelectorAll('.btn-comment').forEach(btn => btn.addEventListener('click', toggleComments));
+    document.querySelectorAll('.btn-quote').forEach(btn => btn.addEventListener('click', handleQuotePost));
+    document.querySelectorAll('.btn-submit-comment').forEach(btn => btn.addEventListener('click', submitComment));
+    document.querySelectorAll('.btn-delete-comment').forEach(btn => btn.addEventListener('click', handleDeleteComment));
+    document.querySelectorAll('.btn-load-more-comments').forEach(btn => btn.addEventListener('click', loadMoreComments));
+    document.querySelectorAll('.quoted-post[data-quoted-id]').forEach(el => el.addEventListener('click', () => {
+        window.location.href = `/?post=${el.dataset.quotedId}`;
+    }));
+
+    // Auto-show comment sections that already have comments
+    document.querySelectorAll('.comments-section').forEach(section => {
+        const list = section.querySelector('.comments-list');
+        if (list && (list.querySelector('.comment') || list.querySelector('.btn-load-more-comments'))) {
+            section.style.display = 'block';
+        }
+    });
+}
+
+async function handleReaction(e) {
+    const btn = e.currentTarget;
+    const postId = btn.dataset.postId;
+    const reactionType = btn.dataset.reaction;
+    const isLiked = btn.dataset.liked === '1';
+
+    // Optimistic update
+    const countEl = btn.querySelector('.reaction-count');
+    const newLiked = !isLiked;
+    const optimisticCount = parseInt(countEl.textContent) + (newLiked ? 1 : -1);
+    btn.dataset.liked = newLiked ? '1' : '0';
+    btn.classList.toggle('liked', newLiked);
+    btn.innerHTML = `${newLiked ? '❤️' : '👍'} Like <span class="reaction-count">${optimisticCount}</span>`;
+
+    try {
+        const response = isLiked
+            ? await fetch(`/api/posts/${postId}/react/${reactionType}`, { method: 'DELETE' })
+            : await fetch(`/api/posts/${postId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction_type: reactionType })
+            });
+        if (!response.ok) throw new Error('reaction failed');
+    } catch (error) {
+        console.error('Reaction error:', error);
+        // Revert
+        btn.dataset.liked = isLiked ? '1' : '0';
+        btn.classList.toggle('liked', isLiked);
+        btn.innerHTML = `${isLiked ? '❤️' : '👍'} Like <span class="reaction-count">${optimisticCount + (newLiked ? -1 : 1)}</span>`;
+    }
+}
+
+async function toggleComments(e) {
+    const postId = e.currentTarget.dataset.postId;
+    const section = document.getElementById(`comments-${postId}`);
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        await loadComments(postId);
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+async function loadComments(postId) {
+    const commentsList = document.getElementById(`comments-list-${postId}`);
+    try {
+        const response = await fetch(`/api/comments/post/${postId}`);
+        const data = await response.json();
+
+        const countEl = document.querySelector(`.btn-comment[data-post-id="${postId}"] .comment-count`);
+        if (countEl) countEl.textContent = data.comments.length;
+
+        if (data.comments.length === 0) {
+            commentsList.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+            return;
+        }
+
+        commentsList.innerHTML = data.comments.map(comment => renderSingleComment(comment)).join('');
+        attachProfilePostListeners();
+    } catch (error) {
+        console.error('Load comments error:', error);
+        commentsList.innerHTML = '<p class="error">Failed to load comments</p>';
+    }
+}
+
+async function loadMoreComments(e) {
+    const btn = e.target;
+    btn.textContent = 'Loading...';
+    btn.disabled = true;
+    await loadComments(btn.dataset.postId);
+}
+
+async function submitComment(e) {
+    const postId = e.target.dataset.postId;
+    const section = document.getElementById(`comments-${postId}`);
+    const textarea = section.querySelector('.comment-input');
+    const content = textarea.value.trim();
+    if (!content) {
+        showToast('Please enter a comment', 'warning');
+        return;
+    }
+    try {
+        const response = await fetch('/api/comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: parseInt(postId), content })
+        });
+        if (response.ok) {
+            textarea.value = '';
+            await loadComments(postId);
+        } else {
+            const data = await response.json();
+            showToast(data.error || 'Failed to post comment', 'error');
+        }
+    } catch (error) {
+        console.error('Submit comment error:', error);
+        showToast('Failed to post comment', 'error');
+    }
+}
+
+async function handleDeleteComment(e) {
+    const commentId = e.target.dataset.commentId;
+    const postId = e.target.dataset.postId;
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+
+    try {
+        const response = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+        if (response.ok) {
+            await loadComments(postId);
+        } else {
+            showToast('Failed to delete comment', 'error');
+        }
+    } catch (error) {
+        console.error('Delete comment error:', error);
+        showToast('Failed to delete comment', 'error');
+    }
+}
+
+// Quote/reshare happens in the feed composer — hand off with the post pre-loaded.
+function handleQuotePost(e) {
+    const btn = e.currentTarget;
+    window.location.href = `/?quote=${btn.dataset.postId}&quoteUser=${encodeURIComponent(btn.dataset.username)}`;
 }
 
 function renderPost(post) {
@@ -176,9 +321,96 @@ function renderPost(post) {
                     ${visibilityHtml}
                 </div>
             </div>
-            <div class="post-content">${contentWithLinks}</div>
+            ${post.content && post.content.trim() ? `<div class="post-content">${contentWithLinks}</div>` : ''}
+            ${renderQuotedPost(post.quoted_post)}
             ${mediaHtml}
             ${tagsHtml}
+            <div class="post-footer">
+                <button class="btn-reaction ${post.is_liked ? 'liked' : ''}" data-post-id="${post.id}" data-reaction="like" data-liked="${post.is_liked ? '1' : '0'}">
+                    ${post.is_liked ? '❤️' : '👍'} Like <span class="reaction-count">${post.reaction_count || 0}</span>
+                </button>
+                <button class="btn-comment" data-post-id="${post.id}">
+                    💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
+                </button>
+                <button class="btn-quote" data-post-id="${post.id}" data-username="${post.username}">
+                    🔁 Quote
+                </button>
+            </div>
+            <div class="comments-section" id="comments-${post.id}" style="display: none;">
+                <div class="comment-input-section">
+                    <textarea class="comment-input" placeholder="Write a comment..." maxlength="2000"></textarea>
+                    <button class="btn-submit-comment" data-post-id="${post.id}">Post Comment</button>
+                </div>
+                <div class="comments-list" id="comments-list-${post.id}">
+                    ${renderComments(post)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderQuotedPost(quoted) {
+    if (!quoted) return '';
+    if (quoted.redacted) {
+        return `<div class="quoted-post quoted-post-redacted">This post is unavailable.</div>`;
+    }
+
+    const avatarUrl = quoted.user_profile_picture || `https://ui-avatars.com/api/?name=${quoted.username}&background=random`;
+    let quotedMedia = '';
+    const urls = (quoted.media_urls && quoted.media_urls.length) ? quoted.media_urls
+               : (quoted.media_url ? [quoted.media_url] : []);
+    if (quoted.media_type === 'image' && urls.length) {
+        quotedMedia = `<img src="${urls[0]}" alt="" class="quoted-post-media" loading="lazy">`;
+    }
+
+    return `
+        <div class="quoted-post" data-quoted-id="${quoted.id}">
+            <div class="quoted-post-header">
+                <img src="${avatarUrl}" alt="${quoted.username}" class="quoted-post-avatar">
+                <span class="quoted-post-username">${quoted.username}</span>
+                <span class="quoted-post-time">${formatDate(quoted.created_at)}</span>
+            </div>
+            ${quoted.content ? `<div class="quoted-post-content">${escapeHtml(quoted.content)}</div>` : ''}
+            ${quotedMedia}
+        </div>
+    `;
+}
+
+function renderComments(post) {
+    const comments = post.preview_comments || [];
+    const commentCount = post.comment_count || 0;
+
+    if (commentCount === 0) {
+        return '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+    }
+
+    let html = comments.map(comment => renderSingleComment(comment)).join('');
+
+    if (commentCount > 3) {
+        const remaining = commentCount - 3;
+        html += `<button class="btn-load-more-comments" data-post-id="${post.id}" data-loaded="3">
+            Load ${remaining} more comment${remaining > 1 ? 's' : ''}
+        </button>`;
+    }
+
+    return html;
+}
+
+function renderSingleComment(comment) {
+    const isOwner = currentUser && comment.user_id === currentUser.id;
+    const avatarUrl = comment.profile_picture || `https://ui-avatars.com/api/?name=${comment.username}&background=random`;
+
+    return `
+        <div class="comment" data-comment-id="${comment.id}">
+            <img src="${avatarUrl}" alt="${comment.username}" class="comment-avatar">
+            <div class="comment-content">
+                <div class="comment-header">
+                    <a href="/profile.html?username=${comment.username}" class="comment-username">${comment.username}</a>
+                    <span class="comment-time">${formatDate(comment.created_at)}</span>
+                    ${isOwner ? `<button class="btn-delete-comment" data-comment-id="${comment.id}" data-post-id="${comment.post_id}">Delete</button>` : ''}
+                </div>
+                <div class="comment-text">${escapeHtml(comment.content)}</div>
+            </div>
         </div>
     `;
 }

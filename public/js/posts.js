@@ -54,6 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTrendingPosters();
         initGlobalSearch();
         startTimestampUpdater();
+
+        // Quote handoff from a profile page (/?quote=<id>&quoteUser=<name>)
+        const params = new URLSearchParams(location.search);
+        const quoteId = params.get('quote');
+        if (quoteId) {
+            startQuote(quoteId, params.get('quoteUser') || '', '');
+            history.replaceState(null, '', location.pathname);
+        }
     }
 });
 
