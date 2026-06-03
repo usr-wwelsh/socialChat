@@ -1044,24 +1044,7 @@ function initGlobalSearch() {
     // Desktop search bar
     const input = document.getElementById('globalSearch');
     const dropdown = document.getElementById('searchResults');
-    if (input && dropdown) {
-        input.addEventListener('input', () => {
-            clearTimeout(_searchDebounceTimer);
-            const q = input.value.trim();
-            if (!q) { dropdown.style.display = 'none'; return; }
-            _searchDebounceTimer = setTimeout(() => performSearch(q, dropdown), 300);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-
-        input.addEventListener('focus', () => {
-            if (input.value.trim() && dropdown.innerHTML) dropdown.style.display = 'block';
-        });
-    }
+    if (input && dropdown) wireSearchInput(input, dropdown);
 
     // Mobile search overlay
     const mobileSearchBtn = document.getElementById('mobileSearch');
@@ -1086,13 +1069,82 @@ function initGlobalSearch() {
         });
     }
 
-    if (mobileInput && mobileDropdown) {
-        mobileInput.addEventListener('input', () => {
-            clearTimeout(_searchDebounceTimer);
-            const q = mobileInput.value.trim();
-            if (!q) { mobileDropdown.style.display = 'none'; return; }
-            _searchDebounceTimer = setTimeout(() => performSearch(q, mobileDropdown), 300);
-        });
+    if (mobileInput && mobileDropdown) wireSearchInput(mobileInput, mobileDropdown);
+}
+
+function wireSearchInput(input, dropdown) {
+    input.addEventListener('input', () => {
+        clearTimeout(_searchDebounceTimer);
+        const q = input.value.trim();
+        if (!q) { dropdown.style.display = 'none'; return; }
+        // Tag autocomplete fires faster for a snappy feel
+        const delay = q.startsWith('#') ? 120 : 220;
+        _searchDebounceTimer = setTimeout(() => performSearch(q, dropdown), delay);
+    });
+
+    input.addEventListener('keydown', (e) => handleSearchKeydown(e, dropdown));
+
+    dropdown.addEventListener('click', (e) => {
+        const item = e.target.closest('.search-result-item');
+        if (item) handleResultClick(item, dropdown);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim() && dropdown.innerHTML) dropdown.style.display = 'block';
+    });
+}
+
+function handleSearchKeydown(e, dropdown) {
+    if (dropdown.style.display === 'none') return;
+    const items = [...dropdown.querySelectorAll('.search-result-item')];
+    if (!items.length) return;
+
+    let idx = items.findIndex(el => el.classList.contains('active'));
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveResult(items, (idx + 1) % items.length);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveResult(items, (idx - 1 + items.length) % items.length);
+    } else if (e.key === 'Enter') {
+        if (idx >= 0) { e.preventDefault(); handleResultClick(items[idx], dropdown); }
+    } else if (e.key === 'Escape') {
+        dropdown.style.display = 'none';
+    }
+}
+
+function setActiveResult(items, idx) {
+    items.forEach((el, i) => el.classList.toggle('active', i === idx));
+    if (items[idx]) items[idx].scrollIntoView({ block: 'nearest' });
+}
+
+function closeSearch(dropdown) {
+    dropdown.style.display = 'none';
+    const overlay = document.getElementById('mobileSearchOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+function handleResultClick(item, dropdown) {
+    if (item.dataset.tag) {
+        filterByTag(item.dataset.tag);
+        closeSearch(dropdown);
+    } else if (item.dataset.href) {
+        window.location.href = item.dataset.href;
+    } else if (item.dataset.postId) {
+        const postEl = document.querySelector(`.post-card[data-post-id="${item.dataset.postId}"]`);
+        if (postEl) {
+            postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            postEl.style.outline = '2px solid var(--accent)';
+            setTimeout(() => { postEl.style.outline = ''; }, 2000);
+        }
+        closeSearch(dropdown);
     }
 }
 
@@ -1100,12 +1152,18 @@ async function performSearch(q, dropdown) {
     if (!dropdown) dropdown = document.getElementById('searchResults');
     if (!dropdown) return;
 
-    try {
-        const res = await fetch(`/api/discovery/search?q=${encodeURIComponent(q)}`);
-        if (!res.ok) return;
-        const data = await res.json();
+    // "#" => hashtag autocomplete
+    if (q.startsWith('#')) return performTagSearch(q.slice(1).trim(), dropdown);
 
-        const { users = [], posts = [] } = data;
+    // "@" => people only
+    const usersOnly = q.startsWith('@');
+    const term = usersOnly ? q.slice(1).trim() : q;
+    if (!term) { dropdown.style.display = 'none'; return; }
+
+    try {
+        const res = await fetch(`/api/discovery/search?q=${encodeURIComponent(term)}&type=${usersOnly ? 'users' : 'all'}`);
+        if (!res.ok) return;
+        const { users = [], posts = [] } = await res.json();
 
         if (!users.length && !posts.length) {
             dropdown.innerHTML = '<div class="search-no-results">No results found</div>';
@@ -1117,15 +1175,15 @@ async function performSearch(q, dropdown) {
 
         if (users.length) {
             html += '<div class="search-results-section">';
-            html += '<div class="search-results-label">Users</div>';
+            html += '<div class="search-results-label">People</div>';
             html += users.map(u => {
                 const avatar = u.profile_picture
                     ? u.profile_picture
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=random`;
                 return `
-                    <div class="search-result-user" data-href="/profile.html?username=${encodeURIComponent(u.username)}">
+                    <div class="search-result-item search-result-user" data-href="/profile.html?username=${encodeURIComponent(u.username)}">
                         <img src="${avatar}" alt="" class="search-result-avatar">
-                        <span class="search-result-name">@${u.username}</span>
+                        <span class="search-result-name">@${escapeHtml(u.username)}</span>
                     </div>
                 `;
             }).join('');
@@ -1136,9 +1194,9 @@ async function performSearch(q, dropdown) {
             html += '<div class="search-results-section">';
             html += '<div class="search-results-label">Posts</div>';
             html += posts.map(p => `
-                <div class="search-result-post" data-post-id="${p.id}">
-                    <span class="search-result-snippet">${p.content.replace(/</g, '&lt;')}</span>
-                    <span class="search-result-author">@${p.username}</span>
+                <div class="search-result-item search-result-post" data-post-id="${p.id}">
+                    <span class="search-result-snippet">${escapeHtml(p.content)}</span>
+                    <span class="search-result-author">@${escapeHtml(p.username)}</span>
                 </div>
             `).join('');
             html += '</div>';
@@ -1146,28 +1204,37 @@ async function performSearch(q, dropdown) {
 
         dropdown.innerHTML = html;
         dropdown.style.display = 'block';
-
-        // Click handlers for results
-        dropdown.querySelectorAll('.search-result-user[data-href]').forEach(el => {
-            el.addEventListener('click', () => {
-                window.location.href = el.dataset.href;
-            });
-        });
-
-        dropdown.querySelectorAll('.search-result-post[data-post-id]').forEach(el => {
-            el.addEventListener('click', () => {
-                const postId = el.dataset.postId;
-                const postEl = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-                if (postEl) {
-                    postEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    postEl.style.outline = '2px solid var(--accent)';
-                    setTimeout(() => { postEl.style.outline = ''; }, 2000);
-                }
-                dropdown.style.display = 'none';
-            });
-        });
     } catch (error) {
         console.error('Search error:', error);
+    }
+}
+
+async function performTagSearch(term, dropdown) {
+    try {
+        const res = await fetch(`/api/tags${term ? `?q=${encodeURIComponent(term)}` : ''}`);
+        if (!res.ok) return;
+        const tags = (await res.json()).slice(0, 10);
+
+        if (!tags.length) {
+            dropdown.innerHTML = '<div class="search-no-results">No matching tags</div>';
+            dropdown.style.display = 'block';
+            return;
+        }
+
+        let html = '<div class="search-results-section">';
+        html += '<div class="search-results-label">Tags</div>';
+        html += tags.map(t => `
+            <div class="search-result-item search-result-tag" data-tag="${escapeHtml(t.name)}">
+                <span class="search-result-hashtag">#${escapeHtml(t.name)}</span>
+                <span class="search-result-author">${t.use_count} ${t.use_count === 1 ? 'post' : 'posts'}</span>
+            </div>
+        `).join('');
+        html += '</div>';
+
+        dropdown.innerHTML = html;
+        dropdown.style.display = 'block';
+    } catch (error) {
+        console.error('Tag search error:', error);
     }
 }
 

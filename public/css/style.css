@@ -422,9 +422,25 @@ a:hover {
     transition: background 0.15s;
 }
 
-.search-result-user:hover,
-.search-result-post:hover {
+.search-result-item:hover,
+.search-result-item.active {
     background: var(--card-bg);
+}
+
+.search-result-tag {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.search-result-hashtag {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent);
 }
 
 .search-result-avatar {
