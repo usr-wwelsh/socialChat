@@ -1,4 +1,4 @@
-<h1><img src="socialchat.gif" alt="socialChat" height="56" align="middle">&nbsp; socialChat</h1>
+<h1><img src="socialchat.gif" alt="socialChat" height="130" align="middle">&nbsp; socialChat</h1>
 
 **Own your social network.** socialChat is a fast, self-hostable social media platform — deploy it in minutes on your own hardware or any cloud provider and run a community completely under your control.
 
