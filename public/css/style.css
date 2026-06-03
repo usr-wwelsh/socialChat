@@ -1124,6 +1124,38 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     border-color: var(--accent);
 }
 
+/* Inline SVG icons in post action buttons */
+.post-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.btn-comment, .btn-quote,
+.btn-pin-post, .btn-unpin-post,
+.btn-delete-post, .btn-report-post,
+.visibility-indicator, .pinned-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-reaction.liked {
+    color: var(--error);
+    border-color: var(--error);
+}
+
+.btn-reaction.liked:hover {
+    color: #fff;
+}
+
+.post-actions-menu .post-icon,
+.visibility-indicator .post-icon,
+.pinned-banner .post-icon {
+    width: 13px;
+    height: 13px;
+}
+
 /* Chat Section */
 .chat-section {
     position: fixed;

@@ -140,7 +140,7 @@ async function handleReaction(e) {
     const optimisticCount = parseInt(countEl.textContent) + (newLiked ? 1 : -1);
     btn.dataset.liked = newLiked ? '1' : '0';
     btn.classList.toggle('liked', newLiked);
-    btn.innerHTML = `${newLiked ? '❤️' : '👍'} Like <span class="reaction-count">${optimisticCount}</span>`;
+    btn.innerHTML = `${newLiked ? ICONS.heart : ICONS.like} Like <span class="reaction-count">${optimisticCount}</span>`;
 
     try {
         const response = isLiked
@@ -156,7 +156,7 @@ async function handleReaction(e) {
         // Revert
         btn.dataset.liked = isLiked ? '1' : '0';
         btn.classList.toggle('liked', isLiked);
-        btn.innerHTML = `${isLiked ? '❤️' : '👍'} Like <span class="reaction-count">${optimisticCount + (newLiked ? -1 : 1)}</span>`;
+        btn.innerHTML = `${isLiked ? ICONS.heart : ICONS.like} Like <span class="reaction-count">${optimisticCount + (newLiked ? -1 : 1)}</span>`;
     }
 }
 
@@ -299,9 +299,9 @@ function renderPost(post) {
     // Visibility indicator
     let visibilityHtml = '';
     if (post.visibility === 'friends') {
-        visibilityHtml = '<span class="visibility-indicator" title="Friends Only">👥 Friends</span>';
+        visibilityHtml = `<span class="visibility-indicator" title="Friends Only">${ICONS.friends} Friends</span>`;
     } else if (post.visibility === 'private') {
-        visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
+        visibilityHtml = `<span class="visibility-indicator" title="Private">${ICONS.lock} Private</span>`;
     }
 
     // Linkify hashtags, embed YouTube videos, then linkify remaining URLs
@@ -327,13 +327,13 @@ function renderPost(post) {
             ${tagsHtml}
             <div class="post-footer">
                 <button class="btn-reaction ${post.is_liked ? 'liked' : ''}" data-post-id="${post.id}" data-reaction="like" data-liked="${post.is_liked ? '1' : '0'}">
-                    ${post.is_liked ? '❤️' : '👍'} Like <span class="reaction-count">${post.reaction_count || 0}</span>
+                    ${post.is_liked ? ICONS.heart : ICONS.like} Like <span class="reaction-count">${post.reaction_count || 0}</span>
                 </button>
                 <button class="btn-comment" data-post-id="${post.id}">
-                    💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
+                    ${ICONS.comment} Comment <span class="comment-count">${post.comment_count || 0}</span>
                 </button>
                 <button class="btn-quote" data-post-id="${post.id}" data-username="${post.username}">
-                    🔁 Quote
+                    ${ICONS.quote} Quote
                 </button>
             </div>
             <div class="comments-section" id="comments-${post.id}" style="display: none;">
