@@ -262,6 +262,7 @@ socialChat/
 │   └── js/
 │       ├── app.js            # Main app logic
 │       ├── auth.js           # Authentication handling
+│       ├── icons.js          # Shared SVG icons for UI
 │       ├── posts.js          # Posts feed functionality
 │       ├── chat.js           # Real-time chat
 │       ├── dm.js             # Direct message logic
@@ -332,7 +333,7 @@ If images/videos/audio don't upload:
 -   `DELETE /api/posts/:id/react/:type` - Remove reaction
 
 ### Profiles
--   `GET /api/profiles/:username` - Get user profile
+-   `GET /api/profiles/:username` - Get user profile and their posts (including reaction/comment counts, tags, quoted posts)
 -   `PUT /api/profiles/me` - Update own profile
 
 ### Chatrooms
