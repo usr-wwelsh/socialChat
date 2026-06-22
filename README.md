@@ -101,7 +101,7 @@ S3_REGION=auto
 When configured, all new media uploads go to S3 automatically. To migrate existing local media to S3:
 
 ```bash
-bun server/scripts/migrate-media-to-s3.js
+bun server/migrate-media-to-s3.js
 # Add --delete-local to remove local copies after upload
 ```
 
@@ -112,9 +112,9 @@ When S3 is configured, socialChat will automatically back up the SQLite database
 To restore a backup:
 
 ```bash
-bun server/scripts/restore-backup.js          # restore latest
-bun server/scripts/restore-backup.js list     # see available backups
-bun server/scripts/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore specific
+bun server/restore-backup.js          # restore latest
+bun server/restore-backup.js list     # see available backups
+bun server/restore-backup.js db-2026-03-16-a7f3c9d2.sqlite  # restore specific
 ```
 
 ## Deployment
@@ -139,3 +139,4 @@ Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at po
 ## Android Client
 
 A native Android client is available at [usr-wwelsh/socialChatAndroid](https://github.com/usr-wwelsh/socialChatAndroid).
+
