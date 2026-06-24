@@ -116,7 +116,7 @@ router.post('/login', async (req, res) => {
   try {
     // Find user
     const result = await query(
-      'SELECT id, username, password_hash, bio, profile_picture, links, is_banned FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, bio, profile_picture, links, is_banned, is_bot FROM users WHERE username = $1',
       [username]
     );
 
@@ -125,6 +125,11 @@ router.post('/login', async (req, res) => {
     }
 
     const user = result.rows[0];
+
+    // Bot accounts are autonomous and never log in — reject without leaking that they're bots
+    if (user.is_bot) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
 
     // Check if user is banned
     if (user.is_banned) {
