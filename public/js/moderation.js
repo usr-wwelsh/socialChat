@@ -365,12 +365,16 @@ document.getElementById('refreshUsersBtn')?.addEventListener('click', () => {
 });
 
 
+let botConfigsByUsername = {};
+
 // Load bot list into dropdown and avatar grid
 async function loadBotList() {
     try {
         const response = await fetch('/api/moderation/bot/list');
         if (!response.ok) return;
         const data = await response.json();
+
+        botConfigsByUsername = Object.fromEntries(data.bots.map(bot => [bot.username, bot]));
 
         // Populate dropdown
         const select = document.getElementById('botSelect');
@@ -399,6 +403,7 @@ async function loadBotList() {
                     <div class="bot-avatar-overlay">📷</div>
                 </div>
                 <span class="bot-avatar-name">${bot.username}</span>
+                <button type="button" class="bot-avatar-edit-btn" title="Edit personality">✏️ Edit</button>
                 <input type="file" class="bot-avatar-input" accept="image/*" style="display:none">
                 <span class="bot-avatar-status"></span>
             `;
@@ -406,8 +411,10 @@ async function loadBotList() {
             const wrap = card.querySelector('.bot-avatar-wrap');
             const input = card.querySelector('.bot-avatar-input');
             const status = card.querySelector('.bot-avatar-status');
+            const editBtn = card.querySelector('.bot-avatar-edit-btn');
 
             wrap.addEventListener('click', () => input.click());
+            editBtn.addEventListener('click', () => openBotEditor(bot.username));
 
             input.addEventListener('change', async () => {
                 const file = input.files[0];
@@ -449,6 +456,76 @@ async function loadBotList() {
         console.error('Load bot list error:', error);
     }
 }
+
+// Open the shared personality editor panel for a given bot
+function openBotEditor(username) {
+    const bot = botConfigsByUsername[username];
+    if (!bot) return;
+
+    const panel = document.getElementById('botEditorPanel');
+    panel.style.display = '';
+    panel.dataset.username = username;
+
+    document.getElementById('botEditorTitle').textContent = `Edit ${username}`;
+    document.getElementById('botEditorBio').value = bot.bio || '';
+    document.getElementById('botEditorPersonality').value = bot.personality || '';
+    document.getElementById('botEditorStyle').value = bot.style || '';
+    document.getElementById('botEditorTopicLimit').value = bot.topicLimit ?? 5;
+    document.getElementById('botEditorLinkCategories').value = (bot.linkCategories || []).join(', ');
+
+    const status = document.getElementById('botEditorStatus');
+    status.textContent = '';
+    status.className = 'bot-editor-status';
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.getElementById('botEditorSaveBtn')?.addEventListener('click', async () => {
+    const panel = document.getElementById('botEditorPanel');
+    const username = panel.dataset.username;
+    if (!username) return;
+
+    const btn = document.getElementById('botEditorSaveBtn');
+    const status = document.getElementById('botEditorStatus');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const linkCategories = document.getElementById('botEditorLinkCategories').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const body = {
+        bio: document.getElementById('botEditorBio').value,
+        personality: document.getElementById('botEditorPersonality').value,
+        style: document.getElementById('botEditorStyle').value,
+        topicLimit: document.getElementById('botEditorTopicLimit').value,
+        linkCategories
+    };
+
+    try {
+        const res = await fetch(`/api/moderation/bot/${username}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            status.textContent = '✓ Saved';
+            status.className = 'bot-editor-status success';
+            await loadBotList();
+        } else {
+            status.textContent = `✗ ${data.error}`;
+            status.className = 'bot-editor-status error';
+        }
+    } catch (error) {
+        status.textContent = '✗ Request failed';
+        status.className = 'bot-editor-status error';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+    }
+});
 
 // Trigger bot post
 document.getElementById('triggerBotBtn')?.addEventListener('click', async () => {
@@ -513,7 +590,7 @@ document.getElementById('burstBotBtn')?.addEventListener('click', async () => {
         status.classList.add('error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Burst 10x (24h)';
+        btn.textContent = 'Burst 10x';
     }
 });
 

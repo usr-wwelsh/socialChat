@@ -97,6 +97,22 @@ function runSqliteMigrations() {
     CREATE INDEX IF NOT EXISTS idx_post_media_post_id ON post_media(post_id, position);
   `);
 
+  // Create bot_configs table if missing (DB-editable bot personalities)
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS bot_configs (
+      id INTEGER PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      bio TEXT,
+      personality TEXT NOT NULL,
+      style VARCHAR(50) NOT NULL,
+      topic_limit INTEGER DEFAULT 5,
+      link_categories TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_bot_configs_username ON bot_configs(username);
+  `);
+
   // Create DM tables if missing
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS dm_conversations (
@@ -169,6 +185,7 @@ const initDatabase = async () => {
       ['migrations/add_pinned_posts.sql', 'Pinned posts migrated successfully'],
       ['migrations/add_post_media.sql', 'Post media table migrated successfully'],
       ['migrations/add_quote_posts.sql', 'Quote posts migrated successfully'],
+      ['migrations/add_bot_configs.sql', 'Bot configs table migrated successfully'],
     ];
 
     for (const [relPath, successMsg] of migrations) {

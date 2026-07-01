@@ -505,6 +505,93 @@
 .bot-avatar-status.success { color: #4caf50; }
 .bot-avatar-status.error   { color: #f44336; }
 
+.bot-avatar-edit-btn {
+    background: none;
+    border: 1px solid var(--border, #3A5268);
+    color: var(--text-secondary);
+    font-size: 0.7em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bot-avatar-edit-btn:hover {
+    border-color: #cc44ff;
+    color: #cc44ff;
+}
+
+/* Bot Personality Editor */
+.bot-editor-panel {
+    margin-top: 24px;
+    background: rgba(106, 158, 192, 0.07);
+    border: 2px solid var(--accent, #6A9EC0);
+    border-radius: 10px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bot-editor-panel h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+}
+
+.bot-editor-panel label {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+.bot-editor-hint {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    opacity: 0.75;
+    font-weight: normal;
+}
+
+.bot-editor-panel textarea,
+.bot-editor-panel input[type="text"],
+.bot-editor-panel input[type="number"] {
+    background: var(--bg-secondary, #1a2a35);
+    border: 1px solid var(--border, #3A5268);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.bot-editor-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.bot-editor-field {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 200px;
+}
+
+.bot-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.bot-editor-status {
+    font-size: 0.95em;
+    font-weight: bold;
+}
+
+.bot-editor-status.success { color: #4caf50; }
+.bot-editor-status.error   { color: #f44336; }
+
 /* BotFight Panel */
 .botfight-panel {
     margin-top: 20px;

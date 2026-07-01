@@ -199,6 +199,19 @@ CREATE TABLE IF NOT EXISTS bot_topics (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bot configs table (DB-editable bot personalities)
+CREATE TABLE IF NOT EXISTS bot_configs (
+    id INTEGER PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    bio TEXT,
+    personality TEXT NOT NULL,
+    style VARCHAR(50) NOT NULL,
+    topic_limit INTEGER DEFAULT 5,
+    link_categories TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- DM conversations table
 CREATE TABLE IF NOT EXISTS dm_conversations (
     id INTEGER PRIMARY KEY,
@@ -270,6 +283,7 @@ CREATE INDEX IF NOT EXISTS idx_bot_state_key ON bot_state(key);
 CREATE INDEX IF NOT EXISTS idx_bot_topics_username ON bot_topics(bot_username);
 CREATE INDEX IF NOT EXISTS idx_bot_topics_created_at ON bot_topics(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bot_topics_username_created ON bot_topics(bot_username, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bot_configs_username ON bot_configs(username);
 CREATE INDEX IF NOT EXISTS idx_visitor_logs_visited_at ON visitor_logs(visited_at);
 CREATE INDEX IF NOT EXISTS idx_visitor_logs_ip_address ON visitor_logs(ip_address);
 CREATE INDEX IF NOT EXISTS idx_dm_conversations_user1 ON dm_conversations(user1_id);

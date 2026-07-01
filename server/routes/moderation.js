@@ -256,9 +256,9 @@ router.get('/users', requireAdmin, async (req, res) => {
 
 // ===== BOT CONTROLS =====
 
-// Get list of bots with profile pictures (admin only)
+// Get list of bots with profile pictures and full config (admin only)
 router.get('/bot/list', requireAuth, requireAdmin, async (req, res) => {
-  const configs = botService.getBotConfigs();
+  const configs = await botService.getBotConfigs();
   const usernames = configs.map(b => b.username);
 
   const placeholders = usernames.map((_, i) => `$${i + 1}`).join(', ');
@@ -270,10 +270,58 @@ router.get('/bot/list', requireAuth, requireAdmin, async (req, res) => {
 
   const bots = configs.map(b => ({
     username: b.username,
+    bio: b.bio,
+    personality: b.personality,
     style: b.style,
+    topicLimit: b.topicLimit,
+    linkCategories: b.linkCategories,
     profile_picture: picMap[b.username] || null
   }));
   res.json({ bots });
+});
+
+// Update a bot's personality/bio/style/etc (admin only)
+router.put('/bot/:username', requireAuth, requireAdmin, async (req, res) => {
+  const { username } = req.params;
+  const { bio, personality, style, topicLimit, linkCategories } = req.body;
+
+  if (!personality || !style) {
+    return res.status(400).json({ error: 'personality and style are required' });
+  }
+
+  const parsedTopicLimit = parseInt(topicLimit);
+  if (Number.isNaN(parsedTopicLimit) || parsedTopicLimit < 0) {
+    return res.status(400).json({ error: 'topicLimit must be a non-negative number' });
+  }
+
+  const linkCategoriesJson = Array.isArray(linkCategories) && linkCategories.length > 0
+    ? JSON.stringify(linkCategories)
+    : null;
+
+  try {
+    const result = await query(
+      `UPDATE bot_configs
+       SET bio = $1, personality = $2, style = $3, topic_limit = $4, link_categories = $5, updated_at = CURRENT_TIMESTAMP
+       WHERE username = $6
+       RETURNING username`,
+      [bio || null, personality, style, parsedTopicLimit, linkCategoriesJson, username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: `Bot "${username}" not found` });
+    }
+
+    // Keep the profile bio (shown on the bot's public page) in sync
+    await query('UPDATE users SET bio = $1 WHERE username = $2 AND is_bot = TRUE', [bio || null, username]);
+
+    // Refresh in-memory bot state so the change takes effect on the next post
+    await botService.initializeBots();
+
+    res.json({ message: 'Bot config updated' });
+  } catch (error) {
+    console.error('Bot config update error:', error);
+    res.status(500).json({ error: 'Failed to update bot config' });
+  }
 });
 
 // Update a bot's profile picture (admin only)
