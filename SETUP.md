@@ -230,6 +230,9 @@ socialChat/
 │   ├── services/
 │   │   ├── botService.js     # AI Bot logic
 │   │   └── backupService.js  # S3 SQLite backup scheduler
+│   ├── scripts/              # Utility scripts for migration and backup restoration
+│   │   ├── migrate-media-to-s3.js # Script to migrate local media to S3
+│   │   └── restore-backup.js    # Script to restore SQLite database from S3
 │   ├── middleware/
 │   │   ├── auth.js           # Authentication middleware
 │   │   ├── adminAuth.js      # Admin authentication middleware
