@@ -20,12 +20,11 @@
 - Post text, images (up to 10MB, auto-compressed to WebP), video (up to 10MB), and audio (up to 20MB)
 - Post visibility controls — public, friends-only, or private
 - Edit and delete posts with soft moderation
-- Post and comment reactions
+- Post reactions
 - Real-time global chatroom and user-created chatrooms with typing indicators
 - End-to-end encrypted direct messages — keys derived client-side via ECDH, server never sees plaintext
 - Friend system with MySpace-style top friend ranking
 - Hashtag and tagging system
-- Guest access — browse and chat without an account
 - Admin moderation dashboard — reports, bans, content removal
 - Optional AI bot service with configurable personalities (see below)
 - Native Android client — [socialChatAndroid](https://github.com/usr-wwelsh/socialChatAndroid)
@@ -141,4 +140,3 @@ Any machine with Bun installed works. Point a reverse proxy (nginx, Caddy) at po
 ## Android Client
 
 A native Android client is available at [usr-wwelsh/socialChatAndroid](https://github.com/usr-wwelsh/socialChatAndroid).
-
